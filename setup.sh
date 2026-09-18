@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR"
 
 DSP_ORCHESTRATION_SCRIPT="setup.sh"
-TOTAL_STEPS=10
+TOTAL_STEPS=11
 
 # shellcheck disable=SC1091
 source "$ROOT_DIR/scripts/common.sh"
@@ -29,17 +29,17 @@ step_header 3 "Setup mode"
 prompt_setup_data_mode
 
 WILL_MIGRATE="${WILL_MIGRATE:-false}"
-INCLUDE_MIGRATION_DB="${INCLUDE_MIGRATION_DB:-false}"
 KEEP_MIGRATION_SERVICE="${KEEP_MIGRATION_SERVICE:-false}"
 
 if [ "$SETUP_MODE" = "demo" ]; then
   info "Mode: demonstration (built-in seed)"
 elif [ "$WILL_MIGRATE" = "true" ]; then
-  info "Mode: real adopter setup with ETL migration (${MIGRATION_EXECUTION_MODE:-once})"
-elif [ "$KEEP_MIGRATION_SERVICE" = "true" ]; then
-  info "Mode: real adopter setup — first load scheduled (${MIGRATION_EXECUTION_MODE})"
+  info "Mode: real adopter — first migration runs during setup (${MIGRATION_EXECUTION_MODE:-once})"
 else
-  info "Mode: real adopter setup without migration"
+  info "Mode: real adopter — first migration scheduled (${MIGRATION_EXECUTION_MODE})"
+  if [ "${GEO_FILE_GENERATION_WAIT:-false}" = "true" ]; then
+    info "After the migration job runs, pre-generated download files will be built once automatically."
+  fi
 fi
 
 MIGRATION_CONFIG_EXAMPLE="$ROOT_DIR/config/Job-Data-Migration/application/application.yaml.example"
@@ -57,7 +57,7 @@ if [ "$SETUP_MODE" = "demo" ]; then
   fi
 
   step_header 6 "Databases"
-  start_databases_and_wait "false"
+  start_databases_and_wait
 
   step_header 7 "Quickstart seed"
   apply_quickstart_seed
@@ -67,13 +67,15 @@ if [ "$SETUP_MODE" = "demo" ]; then
   start_geoserver_exhibition "populate" ""
   start_geoserver_download "populate"
 
+  clear_object_storage_env_for_demo
+
   ok "Setup finished — demonstration data is ready on Docker volumes."
   echo ""
   echo "Next: start the application stacks with:"
   echo "  ./start.sh"
   echo ""
   echo "Day-to-day: prefer ./start.sh (does not re-run seed)."
-  echo "Real adopter data later: run ./config.sh and then ./setup.sh (choose 2)."
+  echo "Real adopter data later: run ./config.sh and then ./setup.sh (Real adopter)."
   echo "Reset DBs (lose data): docker compose down -v && ./setup.sh"
   echo ""
   exit 0
@@ -84,13 +86,8 @@ fi
 step_header 4 "Adopter configuration"
 ensure_adopter_config
 
-step_header 5 "Migration job repository path"
-
-if [ "$INCLUDE_MIGRATION_DB" = "true" ]; then
-  ensure_dsp_repositories --job
-else
-  info "Migration skipped — job repository check not required."
-fi
+step_header 5 "Job repositories"
+ensure_dsp_repositories --job --geo-file-job
 
 step_header 6 "Map layers config (WMS / GeoServer)"
 
@@ -108,7 +105,7 @@ if [ ! -f "$MIGRATION_CONFIG" ]; then
   error "Migration configuration file not found:"
   echo "        $MIGRATION_CONFIG"
   error "Run ./config.sh to generate the active configuration from the adopter wizard."
-  error "Or choose demonstration with ./setup.sh (option 1)."
+  error "Or choose Demonstration in ./setup.sh."
   exit 1
 fi
 
@@ -126,10 +123,10 @@ print_migration_preview "$MIGRATION_CONFIG" "$WILL_MIGRATE"
 
 step_header 8 "Confirmation"
 
-if { [ "$WILL_MIGRATE" = "true" ] || [ "$KEEP_MIGRATION_SERVICE" = "true" ]; } && [ "$MIGRATION_CONFIG_READY" = "false" ]; then
+if [ "$MIGRATION_CONFIG_READY" = "false" ]; then
   error "Migration will run (now or on the schedule), but application.yaml is still a copy of the template."
   error "Edit $MIGRATION_CONFIG (or run ./config.sh) and run './setup.sh' again."
-  error "Or choose option 1 (demonstration)."
+  error "Or choose Demonstration in ./setup.sh."
   exit 1
 fi
 
@@ -140,41 +137,46 @@ fi
 
 step_header 9 "Databases (+ migration)"
 
-start_databases_and_wait "$INCLUDE_MIGRATION_DB"
+start_databases_and_wait
 
 if [ "$WILL_MIGRATE" = "true" ]; then
   info "Running initial data migration (profile=migration)..."
   run_migration_job_once
   ok "Initial migration finished"
-  persist_migration_env
-  if [ "$KEEP_MIGRATION_SERVICE" = "true" ]; then
-    start_migration_service_stack
-    ok "Migration service stack is running (${MIGRATION_EXECUTION_MODE}${MIGRATION_CRON:+ cron=${MIGRATION_CRON}})"
+fi
+
+persist_batch_jobs_env
+
+if [ "$KEEP_MIGRATION_SERVICE" = "true" ]; then
+  if [ "$WILL_MIGRATE" != "true" ]; then
+    info "First load is scheduled — not running the migration during this setup."
+    if [ "${GEO_FILE_GENERATION_WAIT:-false}" = "true" ]; then
+      info "Download files are not generated yet; the geo file job will run once after the scheduled migration."
+    fi
   fi
-elif [ "$KEEP_MIGRATION_SERVICE" = "true" ]; then
-  persist_migration_env
-  info "First load is scheduled — not running the job during this setup."
   start_migration_service_stack
   ok "Migration service stack is running (${MIGRATION_EXECUTION_MODE}${MIGRATION_CRON:+ cron=${MIGRATION_CRON}}${MIGRATION_SCHEDULED_AT:+ at=${MIGRATION_SCHEDULED_AT}})"
-else
-  persist_migration_env
 fi
 
 step_header 10 "GeoServers (publish layers)"
 
-if [ "$KEEP_MIGRATION_SERVICE" = "true" ] && [ "$WILL_MIGRATE" != "true" ]; then
-  info "Option 3 — starting GeoServers now; layers are published after the first scheduled migration."
-  start_geoserver_exhibition "start" "$MIGRATION_CONFIG"
-  start_geoserver_download "start"
-else
+if [ "$WILL_MIGRATE" = "true" ]; then
   start_geoserver_exhibition "populate" "$MIGRATION_CONFIG"
   start_geoserver_download "populate"
+else
+  info "Starting GeoServers now; layers are published after the scheduled migration job completes."
+  start_geoserver_exhibition "start" "$MIGRATION_CONFIG"
+  start_geoserver_download "start"
 fi
 
-if [ "$KEEP_MIGRATION_SERVICE" = "true" ] && [ "$WILL_MIGRATE" != "true" ]; then
-  ok "Setup finished — databases stay empty until the scheduled first load."
-else
+step_header 11 "Object storage + pre-generated downloads"
+
+ensure_geo_file_generation_after_setup
+
+if [ "$WILL_MIGRATE" = "true" ]; then
   ok "Setup finished — data is ready on Docker volumes."
+else
+  ok "Setup finished — databases stay empty until the scheduled migration; then layers and download files are generated."
 fi
 echo ""
 echo "Next: start the application stacks with:"
@@ -184,6 +186,7 @@ echo "Day-to-day: prefer ./start.sh (does not re-run migration)."
 if [ "$KEEP_MIGRATION_SERVICE" = "true" ]; then
   print_migration_resync_hints
 fi
+print_geo_file_generation_hints
 echo "Rebuild only frontend: docker compose up -d --build dsp-frontend"
 echo "Reset DBs (lose data): docker compose down -v && ./setup.sh"
 echo ""

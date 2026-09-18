@@ -181,7 +181,7 @@ detect_geometry_kind() {
   echo "$kind"
 }
 
-# Tables created by the job (AOI and extra layers) may not yet exist in option 3.
+# Tables created by the job (AOI and extra layers) may not yet exist when the first load is scheduled.
 table_exists() {
   local table_name=$1
   local found
@@ -434,6 +434,54 @@ EOF
   echo "Datastore created"
 }
 
+# CSV download dates: UTC ISO-8601 with a literal Z (yyyy-MM-dd'T'HH:mm:ss'Z').
+# The pattern quotes T and Z so SimpleDateFormat does not treat Z as an RFC 822 offset.
+ensure_csv_date_format() {
+  local pattern="yyyy-MM-dd'T'HH:mm:ss'Z'"
+  echo "Setting WFS CSV date format to ${pattern} (UTC)"
+
+  local response status_code body payload put_response put_status
+  response=$(rest_request "GET" "/rest/services/wfs/settings.json")
+  status_code=$(echo "$response" | tail -n 1)
+  body=$(echo "$response" | sed '$d')
+  if [ "$status_code" != "200" ]; then
+    echo "Failed to read WFS settings (HTTP ${status_code})"
+    echo "$body"
+    exit 1
+  fi
+
+  payload=$(echo "$body" | jq --arg fmt "$pattern" '
+    if .wfs != null then
+      .wfs.csvDateFormat = $fmt
+    else
+      .csvDateFormat = $fmt
+    end
+  ')
+  if [ -z "$payload" ] || [ "$payload" = "null" ]; then
+    echo "WFS settings JSON could not be updated with csvDateFormat"
+    echo "$body"
+    exit 1
+  fi
+
+  put_response=$(rest_request "PUT" "/rest/services/wfs/settings" "$payload")
+  put_status=$(echo "$put_response" | tail -n 1)
+  if [ "$put_status" != "200" ]; then
+    echo "Failed to set WFS CSV date format (HTTP ${put_status})"
+    echo "$put_response" | sed '$d'
+    exit 1
+  fi
+
+  local stored
+  stored=$(rest_request "GET" "/rest/services/wfs/settings.json" | sed '$d' | jq -r '
+    if .wfs != null then .wfs.csvDateFormat else .csvDateFormat end
+  ')
+  if [ "$stored" != "$pattern" ]; then
+    echo "WFS csvDateFormat is '${stored}', expected '${pattern}'"
+    exit 1
+  fi
+  echo "WFS CSV date format set"
+}
+
 upload_sld() {
   local style_name=$1
   local sld_content=$2
@@ -606,6 +654,7 @@ echo ""
 
 ensure_workspace
 ensure_datastore
+ensure_csv_date_format
 
 echo ""
 echo "=== Syncing styles and layers from mapLayersConfig.json ==="

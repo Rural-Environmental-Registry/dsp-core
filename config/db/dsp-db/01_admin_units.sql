@@ -14,24 +14,31 @@ CREATE TABLE IF NOT EXISTS dsp.territory_level_1 (
     updated_at           TIMESTAMPTZ 
 );
 
+-- requires_s3_file_regeneration / last_generated_s3_file_at drive the geo file
+-- pre-generation job: the migration turns the flag on after a COMPLETED run,
+-- the job turns it off only when every enabled format was published.
 CREATE TABLE IF NOT EXISTS dsp.territory_level_2 (
-    id                   VARCHAR(64) PRIMARY KEY,
-    name                 VARCHAR(255) NOT NULL,
-    parent_id            VARCHAR(64) REFERENCES dsp.territory_level_1 (id),
-    boundary_box         geometry(Polygon),
-    centroid_coordinates geometry(Point),
-    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at           TIMESTAMPTZ
+    id                            VARCHAR(64) PRIMARY KEY,
+    name                          VARCHAR(255) NOT NULL,
+    parent_id                     VARCHAR(64) REFERENCES dsp.territory_level_1 (id),
+    boundary_box                  geometry(Polygon),
+    centroid_coordinates          geometry(Point),
+    created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                    TIMESTAMPTZ,
+    requires_s3_file_regeneration BOOLEAN NOT NULL DEFAULT FALSE,
+    last_generated_s3_file_at     TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS dsp.territory_level_3 (
-    id                   VARCHAR(64) PRIMARY KEY,
-    name                 VARCHAR(255) NOT NULL,
-    parent_id            VARCHAR(64) REFERENCES dsp.territory_level_2 (id),
-    boundary_box         geometry(Polygon),
-    centroid_coordinates geometry(Point),
-    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at           TIMESTAMPTZ
+    id                            VARCHAR(64) PRIMARY KEY,
+    name                          VARCHAR(255) NOT NULL,
+    parent_id                     VARCHAR(64) REFERENCES dsp.territory_level_2 (id),
+    boundary_box                  geometry(Polygon),
+    centroid_coordinates          geometry(Point),
+    created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                    TIMESTAMPTZ,
+    requires_s3_file_regeneration BOOLEAN NOT NULL DEFAULT FALSE,
+    last_generated_s3_file_at     TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_territory_level_1_boundary_box
@@ -58,6 +65,12 @@ CREATE INDEX IF NOT EXISTS idx_territory_level_3_parent_id
     ON dsp.territory_level_3 (parent_id);
 CREATE INDEX IF NOT EXISTS idx_territory_level_3_updated_at
     ON dsp.territory_level_3 (created_at);
+
+-- Partial: the geo file job only ever reads the pending rows.
+CREATE INDEX IF NOT EXISTS idx_territory_level_2_requires_s3_file_regeneration
+    ON dsp.territory_level_2 (id) WHERE requires_s3_file_regeneration = TRUE;
+CREATE INDEX IF NOT EXISTS idx_territory_level_3_requires_s3_file_regeneration
+    ON dsp.territory_level_3 (id) WHERE requires_s3_file_regeneration = TRUE;
 
 COMMENT ON SCHEMA dsp IS 'DSP RER operational schema';
 COMMENT ON TABLE dsp.territory_level_1 IS 'Level 1 (e.g. region)';

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Migration job entrypoint — DSP_MIGRATION_EXECUTION_MODE:
-#   once            — java -jar and exit (compose run --rm / setup option 2)
-#   continuous      — optional wait until DSP_MIGRATION_SCHEDULED_AT (option 3),
+#   once            — java -jar and exit (compose up on dsp-job-migration in ./setup.sh; docker logs dsp-job-migration)
+#   continuous      — optional wait until DSP_MIGRATION_SCHEDULED_AT (Schedule for later),
 #                     one first load, then supercronic on DSP_MIGRATION_CRON
 #   scheduled-once  — wait until DSP_MIGRATION_SCHEDULED_AT, run once, exit
 set -e
@@ -44,7 +44,7 @@ publish_geoservers_after_first_load() {
   sh "$PUBLISH_GEOSERVERS"
 }
 
-# Empty DSP_MIGRATION_SCHEDULED_AT: no wait (option 2 continuous).
+# Empty DSP_MIGRATION_SCHEDULED_AT: no wait (Run now + Continuous).
 wait_until_scheduled() {
   WHEN="${DSP_MIGRATION_SCHEDULED_AT:-}"
   if [ -z "$WHEN" ]; then

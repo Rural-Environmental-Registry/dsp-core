@@ -181,7 +181,7 @@ detect_geometry_kind() {
   echo "$kind"
 }
 
-# Tables created by the job (AOI and extra layers) may not yet exist in option 3.
+# Tables created by the job (AOI and extra layers) may not yet exist when the first load is scheduled.
 table_exists() {
   local table_name=$1
   local found

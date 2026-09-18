@@ -15,7 +15,7 @@ print_config_rebuild_hint() {
   echo ""
   echo "Operational files were written under config/."
   echo "They are copied into Docker images on the next build."
-  echo "Run ./setup.sh or ./start.sh so containers pick up this configuration."
+  echo "Run ./setup.sh (infrastructure) and rebuild affected images; then ./start.sh for the application stack."
   echo ""
 }
 
@@ -52,7 +52,7 @@ if [ ! -f "$EXAMPLE_FILE" ]; then
 fi
 
 ensure_dotenv
-ensure_dsp_repositories --backend --frontend --job
+ensure_dsp_repositories --backend --frontend --job --geo-file-job
 print_config_intro
 
 if [ -f "$CONFIG_FILE" ]; then
