@@ -1,0 +1,139 @@
+name: Build and Push DSP Docker Images
+
+# Centralized CI for the whole DSP stack (approach A).
+# rer-dsp-core is the build orchestrator: it checks out the sibling repos into the
+# paths that docker-compose expects (../rer-dsp-backend, etc.), builds every image
+# via `docker compose build` (which resolves additional_contexts=dsp_config and the
+# network:host GeoServer builds), then retags the local images and pushes them to
+# GHCR. Sibling repos do not need their own CI — the config lives here in core.
+
+on:
+  push:
+    branches:
+      - 'release/dev'
+      - 'release/prd'
+      - main
+  pull_request:
+    branches:
+      - 'release/dev'
+      - 'release/prd'
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: dsp-docker-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout core (this repo)
+        uses: actions/checkout@v4
+        with:
+          path: rer-dsp-core
+
+      # Sibling repos must sit next to the core, as docker-compose expects
+      # (../rer-dsp-backend, ../rer-dsp-frontend, ../rer-dsp-job-data-migration).
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: Rural-Environmental-Registry/rer-dsp-backend
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          token: ${{ secrets.DSP_SIBLING_REPOS_TOKEN }}
+          path: rer-dsp-backend
+
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          repository: Rural-Environmental-Registry/rer-dsp-frontend
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          token: ${{ secrets.DSP_SIBLING_REPOS_TOKEN }}
+          path: rer-dsp-frontend
+
+      - name: Checkout job-data-migration
+        uses: actions/checkout@v4
+        with:
+          repository: Rural-Environmental-Registry/rer-dsp-job-data-migration
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          token: ${{ secrets.DSP_SIBLING_REPOS_TOKEN }}
+          path: rer-dsp-job-data-migration
+
+      - name: Read version
+        id: version
+        run: echo "version=$(cat rer-dsp-core/VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Set environment tag
+        id: set-tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BRANCH="${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}"
+          case "$BRANCH" in
+            release/dev) echo "tag=${VERSION}-dev" >> "$GITHUB_OUTPUT" ;;
+            release/prd) echo "tag=${VERSION}-prd" >> "$GITHUB_OUTPUT" ;;
+            main)        echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"; echo "latest=true" >> "$GITHUB_OUTPUT" ;;
+            *)           echo "tag=${VERSION}-pr" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Set lowercase owner
+        id: owner
+        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx (allow network.host for GeoServer builds)
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --allow-insecure-entitlement network.host
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build every image with the compose orchestrator (resolves additional_contexts
+      # and the network:host GeoServer builds). Includes the 'migration' profile so
+      # the job image is built too. Produces local dsp-*:local images.
+      - name: Build all DSP images (compose)
+        working-directory: rer-dsp-core
+        run: |
+          cp .env.example .env
+          COMPOSE_BAKE=true docker compose --profile migration build
+
+      # Retag the locally-built images to GHCR and push (only on push events).
+      - name: Tag and push images to GHCR
+        if: github.event_name == 'push'
+        run: |
+          OWNER="${{ steps.owner.outputs.owner }}"
+          TAG="${{ steps.set-tag.outputs.tag }}"
+          LATEST="${{ steps.set-tag.outputs.latest }}"
+          IMAGES="dsp-db dsp-geoserver-db dsp-backend dsp-frontend dsp-gateway dsp-geoserver-exhibition dsp-geoserver-download dsp-job-migration"
+          for img in $IMAGES; do
+            SRC="${img}:local"
+            DST="${REGISTRY}/${OWNER}/${img}:${TAG}"
+            echo "Tagging ${SRC} -> ${DST}"
+            docker tag "$SRC" "$DST"
+            docker push "$DST"
+            if [ "$LATEST" = "true" ]; then
+              LT="${REGISTRY}/${OWNER}/${img}:latest"
+              docker tag "$SRC" "$LT"
+              docker push "$LT"
+            fi
+          done
+
+      - name: Summary
+        if: github.event_name == 'push'
+        run: |
+          echo "### DSP Images Published :rocket:" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tag:** \`${{ steps.set-tag.outputs.tag }}\`  |  **Branch:** \`${{ github.ref_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Images: dsp-db, dsp-geoserver-db, dsp-backend, dsp-frontend, dsp-gateway, dsp-geoserver-exhibition, dsp-geoserver-download, dsp-job-migration" >> "$GITHUB_STEP_SUMMARY"
