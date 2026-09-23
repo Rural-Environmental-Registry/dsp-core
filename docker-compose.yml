@@ -53,7 +53,7 @@ services:
   dsp-job-migration:
     image: dsp-job-migration:local
     build:
-      context: ${DSP_JOB_MIGRATION_PATH:-../rer-dsp-job-data-migration}
+      context: ${DSP_JOB_MIGRATION_PATH:-../job-data-migration}
       dockerfile: Dockerfile
       additional_contexts:
         dsp_config: ./config
@@ -136,7 +136,7 @@ services:
   dsp-job-geo-file-generation:
     image: dsp-job-geo-file-generation:local
     build:
-      context: ${DSP_JOB_GEO_FILE_GENERATION_PATH:-../rer-dsp-job-geo-file-generation}
+      context: ${DSP_JOB_GEO_FILE_GENERATION_PATH:-../job-geo-file-generation}
       dockerfile: Dockerfile
       additional_contexts:
         dsp_config: ./config
@@ -169,12 +169,12 @@ services:
   dsp-backend:
     image: dsp-backend:local
     build:
-      context: ${DSP_BACKEND_PATH:-../rer-dsp-backend}
+      context: ${DSP_BACKEND_PATH:-../backend}
       dockerfile: Dockerfile
       additional_contexts:
         dsp_config: ./config
       args:
-        DSP_BACKEND_PROJECT_NAME: rer-dsp-backend
+        DSP_BACKEND_PROJECT_NAME: dsp-backend
         DSP_BACKEND_VERSION: 0.0.1-SNAPSHOT
     container_name: dsp-backend
     restart: unless-stopped
@@ -305,7 +305,7 @@ services:
   dsp-frontend:
     image: dsp-frontend:local
     build:
-      context: ${DSP_FRONTEND_PATH:-../rer-dsp-frontend}
+      context: ${DSP_FRONTEND_PATH:-../frontend}
       dockerfile: Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-0.0.0}
@@ -336,6 +336,12 @@ services:
       DSP_BACKEND_CONTEXT_PATH: ${DSP_BACKEND_CONTEXT_PATH:-/dsp-backend}
       DSP_GATEWAY_CACHE_BYPASS: ${DSP_GATEWAY_CACHE_BYPASS-1}
       DSP_GATEWAY_CACHE_TTL: ${DSP_GATEWAY_CACHE_TTL:-10m}
+      # Resolver e upstreams parametrizados (defaults = Docker/compose; K8s sobrescreve via ConfigMap)
+      DSP_RESOLVER: ${DSP_RESOLVER:-127.0.0.11}
+      DSP_FRONTEND_UPSTREAM: ${DSP_FRONTEND_UPSTREAM:-dsp-frontend:8080}
+      DSP_BACKEND_UPSTREAM: ${DSP_BACKEND_UPSTREAM:-dsp-backend:8080}
+      DSP_GEOSERVER_EXHIBITION_UPSTREAM: ${DSP_GEOSERVER_EXHIBITION_UPSTREAM:-dsp-geoserver-exhibition:8080}
+      DSP_GEOSERVER_DOWNLOAD_UPSTREAM: ${DSP_GEOSERVER_DOWNLOAD_UPSTREAM:-dsp-geoserver-download:8080}
     volumes:
       - dsp_gateway_cache:/var/cache/nginx/dsp
     healthcheck:

@@ -16,7 +16,7 @@ server {
 
     # Docker internal DNS. Combined with variable upstreams, lets the gateway
     # start even when a container is down (returns 502 instead of failing on boot).
-    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver ${DSP_RESOLVER} valid=10s ipv6=off;
 
     client_max_body_size 16m;
 
@@ -65,12 +65,12 @@ server {
     }
 
     location /dsp/ {
-        set $dsp_frontend dsp-frontend:8080;
+        set $dsp_frontend ${DSP_FRONTEND_UPSTREAM};
         proxy_pass http://$dsp_frontend;
     }
 
     location ${DSP_BACKEND_CONTEXT_PATH}/ {
-        set $dsp_backend dsp-backend:8080;
+        set $dsp_backend ${DSP_BACKEND_UPSTREAM};
         proxy_pass http://$dsp_backend;
         proxy_read_timeout 300s;
     }
@@ -80,7 +80,7 @@ server {
     # GeoServer responds with "Cache-Control: max-age=0, must-revalidate" on every request;
     # ignoring that header is what makes caching work.
     location ~ ^/geoserver-exhibition/[^/]+/(wms|wfs)$ {
-        set $dsp_geoserver_exhibition dsp-geoserver-exhibition:8080;
+        set $dsp_geoserver_exhibition ${DSP_GEOSERVER_EXHIBITION_UPSTREAM};
         rewrite ^/geoserver-exhibition/(.*)$ /geoserver/$1 break;
         proxy_pass http://$dsp_geoserver_exhibition;
         proxy_read_timeout 300s;
@@ -95,7 +95,7 @@ server {
     }
 
     location ~ ^/geoserver-download/[^/]+/(wms|wfs)$ {
-        set $dsp_geoserver_download dsp-geoserver-download:8080;
+        set $dsp_geoserver_download ${DSP_GEOSERVER_DOWNLOAD_UPSTREAM};
         rewrite ^/geoserver-download/(.*)$ /geoserver/$1 break;
         proxy_pass http://$dsp_geoserver_download;
         proxy_read_timeout 300s;
@@ -113,14 +113,14 @@ server {
     # and rewrite. Links they generate are correct via PROXY_BASE_URL.
     # Everything else (web UI, REST): no cache, preserves session.
     location /geoserver-exhibition/ {
-        set $dsp_geoserver_exhibition dsp-geoserver-exhibition:8080;
+        set $dsp_geoserver_exhibition ${DSP_GEOSERVER_EXHIBITION_UPSTREAM};
         rewrite ^/geoserver-exhibition/(.*)$ /geoserver/$1 break;
         proxy_pass http://$dsp_geoserver_exhibition;
         proxy_read_timeout 300s;
     }
 
     location /geoserver-download/ {
-        set $dsp_geoserver_download dsp-geoserver-download:8080;
+        set $dsp_geoserver_download ${DSP_GEOSERVER_DOWNLOAD_UPSTREAM};
         rewrite ^/geoserver-download/(.*)$ /geoserver/$1 break;
         proxy_pass http://$dsp_geoserver_download;
         proxy_read_timeout 300s;

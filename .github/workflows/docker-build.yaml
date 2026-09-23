@@ -1,8 +1,8 @@
 name: Build and Push DSP Docker Images
 
 # Centralized CI for the whole DSP stack (approach A).
-# rer-dsp-core is the build orchestrator: it checks out the sibling repos into the
-# paths that docker-compose expects (../rer-dsp-backend, etc.), builds every image
+# dsp-core is the build orchestrator: it checks out the sibling repos into the
+# paths that docker-compose expects (../backend, etc.), builds every image
 # via `docker compose build` (which resolves additional_contexts=dsp_config and the
 # network:host GeoServer builds), then retags the local images and pushes them to
 # GHCR. Sibling repos do not need their own CI — the config lives here in core.
@@ -38,37 +38,37 @@ jobs:
       - name: Checkout core (this repo)
         uses: actions/checkout@v4
         with:
-          path: rer-dsp-core
+          path: core
 
       # Sibling repos must sit next to the core, as docker-compose expects
-      # (../rer-dsp-backend, ../rer-dsp-frontend, ../rer-dsp-job-data-migration).
+      # (../backend, ../frontend, ../job-data-migration).
       - name: Checkout backend
         uses: actions/checkout@v4
         with:
-          repository: Rural-Environmental-Registry/rer-dsp-backend
+          repository: Rural-Environmental-Registry/dsp-backend
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
           token: ${{ secrets.DSP_SIBLING_REPOS_TOKEN }}
-          path: rer-dsp-backend
+          path: backend
 
       - name: Checkout frontend
         uses: actions/checkout@v4
         with:
-          repository: Rural-Environmental-Registry/rer-dsp-frontend
+          repository: Rural-Environmental-Registry/dsp-frontend
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
           token: ${{ secrets.DSP_SIBLING_REPOS_TOKEN }}
-          path: rer-dsp-frontend
+          path: frontend
 
       - name: Checkout job-data-migration
         uses: actions/checkout@v4
         with:
-          repository: Rural-Environmental-Registry/rer-dsp-job-data-migration
+          repository: Rural-Environmental-Registry/dsp-job-data-migration
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
           token: ${{ secrets.DSP_SIBLING_REPOS_TOKEN }}
-          path: rer-dsp-job-data-migration
+          path: job-data-migration
 
       - name: Read version
         id: version
-        run: echo "version=$(cat rer-dsp-core/VERSION)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(cat core/VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Set environment tag
         id: set-tag
@@ -103,7 +103,7 @@ jobs:
       # and the network:host GeoServer builds). Includes the 'migration' profile so
       # the job image is built too. Produces local dsp-*:local images.
       - name: Build all DSP images (compose)
-        working-directory: rer-dsp-core
+        working-directory: core
         run: |
           cp .env.example .env
           COMPOSE_BAKE=true docker compose --profile migration build
