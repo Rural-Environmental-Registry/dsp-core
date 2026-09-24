@@ -92,7 +92,7 @@ jobs:
           buildkitd-flags: --allow-insecure-entitlement network.host
 
       - name: Log in to GHCR
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -110,7 +110,7 @@ jobs:
 
       # Retag the locally-built images to GHCR and push (only on push events).
       - name: Tag and push images to GHCR
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           OWNER="${{ steps.owner.outputs.owner }}"
           TAG="${{ steps.set-tag.outputs.tag }}"
@@ -130,7 +130,7 @@ jobs:
           done
 
       - name: Summary
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           echo "### DSP Images Published :rocket:" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
