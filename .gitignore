@@ -63,4 +63,4 @@ config/adopter/adopter-config-quenia-bao-2.yaml
 tests/README.md
 config/about/outros arquivos/*
 .specs/*
-tests/*
+tests/*docker-compose.release.yml
