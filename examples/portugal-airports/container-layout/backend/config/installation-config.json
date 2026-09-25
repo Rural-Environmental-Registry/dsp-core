@@ -1,0 +1,184 @@
+{
+  "hierarchy": [
+    {
+      "key": "level1",
+      "label": "Distrito",
+      "placeholder": "Escolha o distrito",
+      "order": 1
+    },
+    {
+      "key": "level2",
+      "label": "Concelho",
+      "placeholder": "Escolha o concelho",
+      "order": 2
+    },
+    {
+      "key": "level3",
+      "label": "Freguesia",
+      "placeholder": "Escolha a freguesia",
+      "order": 3
+    }
+  ],
+  "screens": {
+    "home": {
+      "title": "Cartografia aeroportuária de Portugal",
+      "hierarchyKeys": [
+        "level2",
+        "level3"
+      ],
+      "identifier": {
+        "key": "identifier",
+        "label": "Código interno",
+        "placeholder": "Informe o identificador do aeroporto"
+      },
+      "theme": null,
+      "level1SectionTitle": null,
+      "level2SectionTitle": null,
+      "filterByTitle": null,
+      "detail": {
+        "sectionTitle": "Ficha dos aeroportos",
+        "areaOfInterestSectionTitle": "Características da infraestrutura",
+        "registrationDateLabel": "Data de inclusão no cadastro",
+        "alterationDateLabel": "Última atualização",
+        "latitudeLabel": "Latitude (centroide)",
+        "longitudeLabel": "Longitude (centroide)",
+        "areaLabel": "Área",
+        "featuresDownloadLabel": "Exportar geometrias",
+        "fields": [
+          {
+            "field": "id",
+            "label": "Código interno"
+          },
+          {
+            "field": "osm_id",
+            "label": "Identificador OpenStreetMap"
+          },
+          {
+            "field": "official_name",
+            "label": "Designação oficial"
+          },
+          {
+            "field": "geometry_source_kind",
+            "label": "Origem da geometria (polígono OSM ou buffer)"
+          },
+          {
+            "field": "area",
+            "label": "Área (m²)"
+          },
+          {
+            "field": "calculated.latitude",
+            "label": "Latitude"
+          },
+          {
+            "field": "calculated.longitude",
+            "label": "Longitude"
+          },
+          {
+            "field": "calculated.territory_level_2_name",
+            "label": "Concelho"
+          },
+          {
+            "field": "calculated.territory_level_3_name",
+            "label": "Freguesia"
+          },
+          {
+            "field": "created_at",
+            "label": "Cadastrado em"
+          },
+          {
+            "field": "updated_at",
+            "label": "Atualizado em"
+          }
+        ]
+      }
+    },
+    "downloads": {
+      "title": "Descarregar dados geográficos — Portugal",
+      "hierarchyKeys": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "identifier": null,
+      "theme": {
+        "key": "theme",
+        "label": "Faixa de segurança",
+        "placeholder": "Todas as faixas"
+      },
+      "level1SectionTitle": "Selecione o distrito para os downloads territoriais",
+      "level2SectionTitle": "Concelhos disponíveis no distrito escolhido",
+      "filterByTitle": "Refinar por:"
+    }
+  },
+  "kpis": {
+    "maxCards": 5,
+    "primaryCode": "AREA_OF_INTEREST",
+    "cards": [
+      {
+        "code": "AREA_OF_INTEREST",
+        "label": "Infraestruturas aeroportuárias",
+        "unitOfMeasurement": "un.",
+        "optionalLabel": "m²",
+        "accentColor": "#82fb82",
+        "order": 1,
+        "required": true
+      },
+      {
+        "code": "THEME_1",
+        "label": "Superfície na faixa de 300 m",
+        "unitOfMeasurement": "m²",
+        "optionalLabel": null,
+        "accentColor": "#DE6161",
+        "order": 2,
+        "required": false,
+        "layer": "zona-seguranca-300m"
+      },
+      {
+        "code": "THEME_2",
+        "label": "Superfície na faixa de 600 m",
+        "unitOfMeasurement": "m²",
+        "optionalLabel": null,
+        "accentColor": "#E38655",
+        "order": 3,
+        "required": false,
+        "layer": "zona-seguranca-600m"
+      },
+      {
+        "code": "THEME_3",
+        "label": "Superfície na faixa de 1 200 m",
+        "unitOfMeasurement": "m²",
+        "optionalLabel": null,
+        "accentColor": "#D79851",
+        "order": 4,
+        "required": false,
+        "layer": "zona-seguranca-1200m"
+      },
+      {
+        "code": "THEME_4",
+        "label": "Superfície na faixa de 2 400 m",
+        "unitOfMeasurement": "m²",
+        "optionalLabel": null,
+        "accentColor": "#D8B567",
+        "order": 5,
+        "required": false,
+        "layer": "zona-seguranca-2400m"
+      }
+    ]
+  },
+  "areaOfInterest": {
+    "areaUnit": "m2",
+    "areaUnitLabel": "m²"
+  },
+  "formats": {
+    "date": "dd/MM/yyyy",
+    "dateTime": "dd/MM/yyyy HH:mm"
+  },
+  "map": {
+    "initialView": {
+      "mode": "manual",
+      "latitude": 39.633392,
+      "longitude": -7.971648,
+      "zoom": 5
+    }
+  }
+}

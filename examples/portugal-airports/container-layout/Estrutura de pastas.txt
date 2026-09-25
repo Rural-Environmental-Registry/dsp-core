@@ -1,0 +1,58 @@
+backend
+    /config
+        /about
+            *.md
+            about-config.json
+        downloadThemesConfig.json
+        installation-config.json
+        mapLayersConfig.json
+
+frontend
+    /usr
+        /share
+            /nginx
+                /html
+                    /dsp
+                        /config
+                            env.json
+
+gateway
+    /etc
+        /nginx
+            /templates
+                default.conf.template
+
+banco-dsp-db
+    /docker-entrypoint-initdb.d/
+        00_extensions.sql
+        01_admin_units.sql
+        02_data_migration_batch.sql
+        03_geo_file_generation_batch.sql
+
+banco-geoserver-db
+    /docker-entrypoint-initdb.d/
+        00_extensions.sql
+        01_admin_units.sql
+
+geoserver-download
+    /config
+        mapLayersConfig.json
+
+geoserver-exhibition
+    /config
+        mapLayersConfig.json
+
+job-migracao
+    /config
+        application.yaml
+        mapLayersConfig.json
+
+job-geo-file
+    /config
+        application.yaml
+        downloadThemesConfig.json
+
+object-storage
+    /etc
+        /seaweedfs
+            s3.json

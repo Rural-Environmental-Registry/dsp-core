@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "bannerTitle": "Sobre esta instância",
+  "tabs": [
+    {
+      "id": "tab-1",
+      "label": "Visão geral",
+      "file": "overview.md"
+    },
+    {
+      "id": "tab-2",
+      "label": "Funcionalidades",
+      "file": "features.md"
+    },
+    {
+      "id": "tab-3",
+      "label": "Configuração",
+      "file": "configuration.md"
+    },
+    {
+      "id": "tab-4",
+      "label": "Licença",
+      "file": "license.md"
+    }
+  ]
+}

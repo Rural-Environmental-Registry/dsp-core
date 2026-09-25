@@ -1,0 +1,186 @@
+{
+  "groups": [
+    {
+      "name": "Administração local",
+      "key": "dt",
+      "toggle": {
+        "active": "On",
+        "inactive": "Off"
+      },
+      "layers": [
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:territory-level-1",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Distrito",
+          "activeDefault": true,
+          "active": true,
+          "key": "dt_l1",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#000000",
+            "fillColor": "transparent"
+          }
+        },
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:territory-level-2",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Concelho",
+          "activeDefault": false,
+          "active": false,
+          "key": "dt_l2",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#000000",
+            "fillColor": "transparent"
+          }
+        },
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:territory-level-3",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Freguesia",
+          "activeDefault": true,
+          "active": true,
+          "key": "dt_l3",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#000000",
+            "fillColor": "transparent"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Aeródromos e pistas",
+      "key": "ird",
+      "toggle": {
+        "active": "On",
+        "inactive": "Off"
+      },
+      "layers": [
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:area-of-interest",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Infraestruturas aeroportuárias",
+          "activeDefault": true,
+          "active": true,
+          "key": "ird_aoi",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#202C59",
+            "fillColor": "#00D9C0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Zonas de exclusão e restrição",
+      "key": "zonas_seguranca_aeroportuaria",
+      "toggle": {
+        "active": "On",
+        "inactive": "Off"
+      },
+      "layers": [
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:zona-seguranca-300m",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Cinturão de proteção — 300 m",
+          "activeDefault": true,
+          "active": true,
+          "key": "zonas_seguranca_aeroportuaria_zona_seguranca_300m",
+          "nativeName": "zona_seguranca_300m",
+          "srs": "EPSG:3763",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#DC2626",
+            "fillColor": "#da8484"
+          }
+        },
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:zona-seguranca-600m",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Anel de restrição — 600 m",
+          "activeDefault": true,
+          "active": true,
+          "key": "zonas_seguranca_aeroportuaria_zona_seguranca_600m",
+          "nativeName": "zona_seguranca_600m",
+          "srs": "EPSG:3763",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#EA580C",
+            "fillColor": "#FED7AA"
+          }
+        },
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:zona-seguranca-1200m",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Perímetro ampliado — 1200 m",
+          "activeDefault": true,
+          "active": true,
+          "key": "zonas_seguranca_aeroportuaria_zona_seguranca_1200m",
+          "nativeName": "zona_seguranca_1200m",
+          "srs": "EPSG:3763",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#D97706",
+            "fillColor": "#FDE68A"
+          }
+        },
+        {
+          "baseUrl": "http://localhost:8026/geoserver-exhibition/dsp/wms",
+          "layers": "dsp:zona-seguranca-2400m",
+          "format": "image/png",
+          "transparent": true,
+          "name": "Horizonte de segurança — 2400 m",
+          "activeDefault": false,
+          "active": false,
+          "key": "zonas_seguranca_aeroportuaria_zona_seguranca_2400m",
+          "nativeName": "zona_seguranca_2400m",
+          "srs": "EPSG:3763",
+          "toggle": {
+            "active": "On",
+            "inactive": "Off"
+          },
+          "style": {
+            "color": "#CA8A04",
+            "fillColor": "#FEF9C3"
+          }
+        }
+      ]
+    }
+  ]
+}

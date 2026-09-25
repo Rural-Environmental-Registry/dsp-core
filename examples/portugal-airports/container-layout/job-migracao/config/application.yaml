@@ -1,0 +1,254 @@
+spring:
+  application:
+    name: dsp-batch
+  main:
+    web-application-type: none
+  datasource:
+    batch:
+      url: jdbc:postgresql://dsp-db:5432/dsp-db?currentSchema=data_migration
+      username: dsp
+      password: dsp
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 10
+        minimum-idle: 2
+        pool-name: batch-pool
+        connection-test-query: SELECT 1
+    source:
+      url: ${DSP_SOURCE_JDBC_URL}
+      username: ${DSP_SOURCE_DB_USER}
+      password: ${DSP_SOURCE_DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        pool-name: source-pool
+    target:
+      url: jdbc:postgresql://dsp-db:5432/dsp-db
+      username: dsp
+      password: dsp
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        pool-name: target-pool
+    geo-target:
+      url: jdbc:postgresql://dsp-geoserver-db:5432/dsp-geoserver-db
+      username: dsp_geo
+      password: dsp_geo
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        pool-name: geo-target-pool
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: never
+server:
+  port: 8086
+batch:
+  source-timezone: America/Sao_Paulo
+  admin-unit:
+    level-1:
+      source-table: public.src_geo_district
+      target-table: dsp.territory_level_1
+      primary-key: id
+      geometry-column: the_geom
+      creation-date-column: sourced_at
+      updated-at-column: revised_at
+      where-clause: the_geom IS NOT NULL
+      persist-columns:
+      - id
+      - sourced_at
+      - official_name
+      - revised_at
+      column-mapping:
+        id: id
+        the_geom: geom
+        sourced_at: created_at
+        official_name: name
+        revised_at: updated_at
+      layer-name: territory-level-1
+      srid: ${LAYER_SRS_TERRITORY_LEVEL_1:4326}
+    level-2:
+      source-table: public.src_geo_municipality
+      target-table: dsp.territory_level_2
+      primary-key: id
+      partition-column: district_ref_id
+      geometry-column: the_geom
+      creation-date-column: sourced_at
+      updated-at-column: revised_at
+      where-clause: the_geom IS NOT NULL
+      persist-columns:
+      - id
+      - sourced_at
+      - official_name
+      - district_ref_id
+      - revised_at
+      column-mapping:
+        id: id
+        the_geom: geom
+        sourced_at: created_at
+        official_name: name
+        district_ref_id: parent_id
+        revised_at: updated_at
+      layer-name: territory-level-2
+      srid: ${LAYER_SRS_TERRITORY_LEVEL_2:4326}
+    level-3:
+      source-table: public.src_geo_parish
+      target-table: dsp.territory_level_3
+      primary-key: id
+      partition-column: municipality_ref_id
+      geometry-column: the_geom
+      creation-date-column: sourced_at
+      updated-at-column: revised_at
+      where-clause: the_geom IS NOT NULL
+      persist-columns:
+      - id
+      - sourced_at
+      - official_name
+      - municipality_ref_id
+      - revised_at
+      column-mapping:
+        id: id
+        the_geom: geom
+        sourced_at: created_at
+        official_name: name
+        municipality_ref_id: parent_id
+        revised_at: updated_at
+      layer-name: territory-level-3
+      srid: ${LAYER_SRS_TERRITORY_LEVEL_3:4326}
+  area-of-interest:
+    source-table: public.src_geo_airport
+    target-table: dsp.area_of_interest
+    primary-key: id
+    creation-date-column: sourced_at
+    updated-at-column: revised_at
+    commune-id-column: parish_ref_id
+    territory-level-3-column: parish_ref_id
+    geometry-column: the_geom
+    where-clause: the_geom IS NOT NULL AND parish_ref_id IS NOT NULL
+    additional-columns:
+    - osm_id
+    - official_name
+    - geometry_source_kind
+    layer-name: area-of-interest
+    srid: ${LAYER_SRS_AREA_OF_INTEREST:4326}
+  layers:
+  - source-table: public.src_geo_airport_safety_300m
+    primary-key: id
+    area-of-interest-id-column: airport_ref_id
+    creation-date-column: sourced_at
+    geometry-column: the_geom
+    layer-name: zona-seguranca-300m
+    srid: 3763
+    where-clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    updated-at-column: revised_at
+    label-column: ring_label
+    additional-columns:
+    - distance_m
+    - area_m2
+  - source-table: public.src_geo_airport_safety_600m
+    primary-key: id
+    area-of-interest-id-column: airport_ref_id
+    creation-date-column: sourced_at
+    geometry-column: the_geom
+    layer-name: zona-seguranca-600m
+    srid: 3763
+    where-clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    updated-at-column: revised_at
+    label-column: ring_label
+    additional-columns:
+    - internal_distance_m
+    - external_distance_m
+    - area_m2
+  - source-table: public.src_geo_airport_safety_1200m
+    primary-key: id
+    area-of-interest-id-column: airport_ref_id
+    creation-date-column: sourced_at
+    geometry-column: the_geom
+    layer-name: zona-seguranca-1200m
+    srid: 3763
+    where-clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    updated-at-column: revised_at
+    label-column: ring_label
+    additional-columns:
+    - internal_distance_m
+    - external_distance_m
+    - area_m2
+  - source-table: public.src_geo_airport_safety_2400m
+    primary-key: id
+    area-of-interest-id-column: airport_ref_id
+    creation-date-column: sourced_at
+    geometry-column: the_geom
+    layer-name: zona-seguranca-2400m
+    srid: 3763
+    where-clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    updated-at-column: revised_at
+    label-column: ring_label
+    additional-columns:
+    - internal_distance_m
+    - external_distance_m
+    - area_m2
+kpis:
+  theme-count: 4
+  themes:
+  - slot: 1
+    layer-name: zona-seguranca-300m
+    unit-of-measurement: m²
+    label: Superfície na faixa de 300 m
+  - slot: 2
+    layer-name: zona-seguranca-600m
+    unit-of-measurement: m²
+    label: Superfície na faixa de 600 m
+  - slot: 3
+    layer-name: zona-seguranca-1200m
+    unit-of-measurement: m²
+    label: Superfície na faixa de 1 200 m
+  - slot: 4
+    layer-name: zona-seguranca-2400m
+    unit-of-measurement: m²
+    label: Superfície na faixa de 2 400 m
+  area-unit-of-measurement: m²
+parallelization:
+  jobs:
+    adminUnitLevel1GeoserverJob:
+      enabled: true
+      thread-pool-size: 1
+      chunk-size: 1
+      page-size: 1000
+      queue-capacity: 100
+    adminUnitLevel2GeoserverJob:
+      enabled: true
+      thread-pool-size: 12
+      chunk-size: 1
+      page-size: 1000
+      queue-capacity: 100
+    adminUnitLevel3GeoserverJob:
+      enabled: true
+      thread-pool-size: 12
+      chunk-size: 470
+      page-size: 1000
+      queue-capacity: 100
+    areaOfInterestGeoserverJob:
+      enabled: true
+      thread-pool-size: 1
+      chunk-size: 100
+      page-size: 1000
+      queue-capacity: 100
+execution-jobs:
+  admin-unit-level-1-geoserver-job: true
+  admin-unit-level-2-geoserver-job: true
+  admin-unit-level-3-geoserver-job: true
+  area-of-interest-geoserver-job: true
+  layer-jobs: true
+  kpi-job: true
+logging:
+  level:
+    br.car.dsp_batch: INFO

@@ -1,0 +1,75 @@
+{
+  "wfsBaseUrl": "http://localhost:8026/geoserver-download/dsp/wfs",
+  "themes": [
+    {
+      "code": "area_of_interest",
+      "name": "Infraestruturas aeroportuárias",
+      "typeName": "dsp:area-of-interest",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "direct",
+        "level3Field": "territory_level_3_id"
+      }
+    },
+    {
+      "code": "zona_seguranca_300m",
+      "name": "Cinturão de proteção — 300 m",
+      "typeName": "dsp:zona-seguranca-300m",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    },
+    {
+      "code": "zona_seguranca_600m",
+      "name": "Anel de restrição — 600 m",
+      "typeName": "dsp:zona-seguranca-600m",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    },
+    {
+      "code": "zona_seguranca_1200m",
+      "name": "Perímetro ampliado — 1200 m",
+      "typeName": "dsp:zona-seguranca-1200m",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    },
+    {
+      "code": "zona_seguranca_2400m",
+      "name": "Horizonte de segurança — 2400 m",
+      "typeName": "dsp:zona-seguranca-2400m",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    }
+  ]
+}

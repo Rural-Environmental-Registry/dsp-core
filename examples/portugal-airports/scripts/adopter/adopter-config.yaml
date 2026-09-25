@@ -1,0 +1,286 @@
+environment:
+  source_jdbc_url: jdbc:postgresql://192.168.31.195:25432/gis_portugal
+  source_db_user: gis
+  source_db_password: gis
+  layer_srs:
+    territory_level_1: 3763
+    territory_level_2: 3763
+    territory_level_3: 3763
+    area_of_interest: 3763
+  object_storage:
+    endpoint: http://dsp-object-storage:8333
+    region: us-east-1
+    bucket: dsp-geo-files
+    access_key: dsp
+    secret_key: dsp-secret
+    path_style_access: true
+    generation_cron: 0 2 * * *
+etl:
+  level1:
+    source_table: public.src_geo_district
+    primary_key: id
+    name_column: official_name
+    geometry_column: the_geom
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    where_clause: the_geom IS NOT NULL
+  level2:
+    source_table: public.src_geo_municipality
+    primary_key: id
+    parent_key: district_ref_id
+    name_column: official_name
+    geometry_column: the_geom
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    where_clause: the_geom IS NOT NULL
+  level3:
+    source_table: public.src_geo_parish
+    primary_key: id
+    parent_key: municipality_ref_id
+    name_column: official_name
+    geometry_column: the_geom
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    where_clause: the_geom IS NOT NULL
+  area_of_interest:
+    source_table: public.src_geo_airport
+    primary_key: id
+    territory_level_3_column: parish_ref_id
+    geometry_column: the_geom
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    area_column: area
+    additional_columns:
+    - osm_id
+    - official_name
+    - geometry_source_kind
+    where_clause: the_geom IS NOT NULL AND parish_ref_id IS NOT NULL
+  layers:
+  - source_table: public.src_geo_airport_safety_300m
+    primary_key: id
+    parent_key: airport_ref_id
+    label_column: ring_label
+    geometry_column: the_geom
+    srid: 3763
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    additional_columns:
+    - distance_m
+    - area_m2
+    where_clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    layer_name: zona-seguranca-300m
+    display_name: Cinturão de proteção — 300 m
+    group_key: zonas_seguranca_aeroportuaria
+    active_default: true
+    color: '#DC2626'
+    fill_color: '#da8484'
+  - source_table: public.src_geo_airport_safety_600m
+    primary_key: id
+    parent_key: airport_ref_id
+    label_column: ring_label
+    geometry_column: the_geom
+    srid: 3763
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    additional_columns:
+    - internal_distance_m
+    - external_distance_m
+    - area_m2
+    where_clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    layer_name: zona-seguranca-600m
+    display_name: Anel de restrição — 600 m
+    group_key: zonas_seguranca_aeroportuaria
+    active_default: true
+    color: '#EA580C'
+    fill_color: '#FED7AA'
+  - source_table: public.src_geo_airport_safety_1200m
+    primary_key: id
+    parent_key: airport_ref_id
+    label_column: ring_label
+    geometry_column: the_geom
+    srid: 3763
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    additional_columns:
+    - internal_distance_m
+    - external_distance_m
+    - area_m2
+    where_clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    layer_name: zona-seguranca-1200m
+    display_name: Perímetro ampliado — 1200 m
+    group_key: zonas_seguranca_aeroportuaria
+    active_default: true
+    color: '#D97706'
+    fill_color: '#FDE68A'
+  - source_table: public.src_geo_airport_safety_2400m
+    primary_key: id
+    parent_key: airport_ref_id
+    label_column: ring_label
+    geometry_column: the_geom
+    srid: 3763
+    created_at_column: sourced_at
+    updated_at_column: revised_at
+    additional_columns:
+    - internal_distance_m
+    - external_distance_m
+    - area_m2
+    where_clause: the_geom IS NOT NULL AND airport_ref_id IN (SELECT id FROM public.src_geo_airport
+      WHERE the_geom IS NOT NULL AND parish_ref_id IS NOT NULL)
+    layer_name: zona-seguranca-2400m
+    display_name: Horizonte de segurança — 2400 m
+    group_key: zonas_seguranca_aeroportuaria
+    active_default: false
+    color: '#CA8A04'
+    fill_color: '#FEF9C3'
+  parallelization:
+    level1:
+      thread_pool_size: 1
+      chunk_size: 1
+      page_size: 1000
+    level2:
+      thread_pool_size: 4
+      chunk_size: 1
+      page_size: 1000
+    level3:
+      thread_pool_size: 4
+      chunk_size: 100
+      page_size: 1000
+    area_of_interest:
+      thread_pool_size: 1
+      chunk_size: 100
+      page_size: 1000
+installation:
+  kpis:
+    theme_count: 4
+    area_of_interest:
+      label: Infraestruturas aeroportuárias
+      unit_of_measurement: un.
+      optional_label: m²
+      accent_color: '#82fb82'
+    theme_1:
+      layer: zona-seguranca-300m
+      label: Superfície na faixa de 300 m
+      unit_of_measurement: m²
+      accent_color: '#DE6161'
+    theme_2:
+      layer: zona-seguranca-600m
+      label: Superfície na faixa de 600 m
+      unit_of_measurement: m²
+      accent_color: '#E38655'
+    theme_3:
+      layer: zona-seguranca-1200m
+      label: Superfície na faixa de 1 200 m
+      unit_of_measurement: m²
+      accent_color: '#D79851'
+    theme_4:
+      layer: zona-seguranca-2400m
+      label: Superfície na faixa de 2 400 m
+      unit_of_measurement: m²
+      accent_color: '#D8B567'
+  area:
+    unit: m2
+    unit_label: m²
+  formats:
+    date: dd/MM/yyyy
+    date_time: dd/MM/yyyy HH:mm
+  hierarchy:
+    level1:
+      label: Distrito
+      placeholder: Escolha o distrito
+    level2:
+      label: Concelho
+      placeholder: Escolha o concelho
+    level3:
+      label: Freguesia
+      placeholder: Escolha a freguesia
+  screens:
+    home_title: Cartografia aeroportuária de Portugal
+    downloads_title: Descarregar dados geográficos — Portugal
+    identifier:
+      label: Código interno
+      placeholder: Informe o identificador do aeroporto
+    detail:
+      section_title: Ficha dos aeroportos
+      area_of_interest_section_title: Características da infraestrutura
+      registration_date_label: Data de inclusão no cadastro
+      alteration_date_label: Última atualização
+      latitude_label: Latitude (centroide)
+      longitude_label: Longitude (centroide)
+      area_label: Área
+      features_download_label: Exportar geometrias
+      fields:
+      - field: id
+        label: Código interno
+      - field: osm_id
+        label: Identificador OpenStreetMap
+      - field: official_name
+        label: Designação oficial
+      - field: geometry_source_kind
+        label: Origem da geometria (polígono OSM ou buffer)
+      - field: area
+        label: Área (m²)
+      - field: calculated.latitude
+        label: Latitude
+      - field: calculated.longitude
+        label: Longitude
+      - field: calculated.territory_level_2_name
+        label: Concelho
+      - field: calculated.territory_level_3_name
+        label: Freguesia
+      - field: created_at
+        label: Cadastrado em
+      - field: updated_at
+        label: Atualizado em
+    downloads:
+      theme:
+        label: Faixa de segurança
+        placeholder: Todas as faixas
+      level1_section_title: Selecione o distrito para os downloads territoriais
+      level2_section_title: Concelhos disponíveis no distrito escolhido
+      filter_by_title: 'Refinar por:'
+map:
+  initial_view:
+    mode: manual
+    latitude: 39.633392
+    longitude: -7.971648
+    zoom: 5
+  group_names:
+    territorial_division: Administração local
+    areas_of_interest: Aeródromos e pistas
+    zonas_seguranca_aeroportuaria: Zonas de exclusão e restrição
+  layers:
+    level1:
+      name: Distrito
+      active_default: true
+      color: '#000000'
+      fill_color: transparent
+    level2:
+      name: Concelho
+      active_default: false
+      color: '#000000'
+      fill_color: transparent
+    level3:
+      name: Freguesia
+      active_default: true
+      color: '#000000'
+      fill_color: transparent
+    area_of_interest:
+      name: Infraestruturas aeroportuárias
+      active_default: true
+      color: '#202C59'
+      fill_color: '#00D9C0'
+about:
+  enabled: true
+  banner_title: Sobre esta instância
+  tabs:
+  - label: Visão geral
+    file: overview.md
+  - label: Funcionalidades
+    file: features.md
+  - label: Configuração
+    file: configuration.md
+  - label: Licença
+    file: license.md
