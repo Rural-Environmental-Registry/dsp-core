@@ -1,0 +1,284 @@
+environment:
+  source_jdbc_url: jdbc:postgresql://host.docker.internal:15432/geo_public_consultation
+  source_db_user: postgres
+  source_db_password: postgres
+  layer_srs:
+    territory_level_1: 4674
+    territory_level_2: 4674
+    territory_level_3: 4674
+    area_of_interest: 4674
+  object_storage:
+    endpoint: http://dsp-object-storage:8333
+    region: us-east-1
+    bucket: dsp-geo-files
+    access_key: dsp
+    secret_key: dsp-secret
+    path_style_access: true
+    generation_cron: 0 2 * * *
+etl:
+  level1:
+    source_table: geo_public_consultation.vw_dsp_paises_piloto_50
+    primary_key: gid
+    name_column: codigo
+    geometry_column: the_geom
+    created_at_column: created_at
+    updated_at_column: ''
+    where_clause: the_geom IS NOT NULL
+  level2:
+    source_table: geo_public_consultation.vw_dsp_estado_piloto_50
+    primary_key: cod_estado
+    parent_key: pais_gid
+    name_column: nom_estado
+    geometry_column: geo_localizacao
+    created_at_column: created_at
+    updated_at_column: ''
+    where_clause: geo_localizacao IS NOT NULL
+  level3:
+    source_table: geo_public_consultation.vw_dsp_municipios_piloto_50
+    primary_key: idt_municipio
+    parent_key: cod_estado
+    name_column: nom_municipio
+    geometry_column: geo_localizacao
+    created_at_column: created_at
+    updated_at_column: ''
+    where_clause: geo_localizacao IS NOT NULL
+  area_of_interest:
+    source_table: geo_public_consultation.vw_dsp_aoi_iru_piloto_50
+    primary_key: cod_imovel
+    territory_level_3_column: idt_municipio
+    geometry_column: geom
+    created_at_column: created_at
+    updated_at_column: updated_at
+    area_column: area
+    additional_columns:
+    - uf
+    - municipio
+    - bioma
+    - tipo_imovel
+    - status_imovel
+    - situacao_analise
+    - nu_area_imovel
+    where_clause: geom IS NOT NULL
+  layers:
+  - source_table: geo_public_consultation.vw_dsp_rio_ate_10_piloto_50
+    primary_key: id
+    parent_key: cod_imovel
+    geometry_column: geom
+    srid: 4674
+    created_at_column: created_at
+    updated_at_column: updated_at
+    where_clause: geom IS NOT NULL
+    layer_name: rio-ate-10
+    display_name: Natural watercourse up to 10 meters
+    group_key: feicoes_hidrografia
+    active_default: false
+    color: '#A0DCF1'
+    fill_color: '#A0DCF1'
+  - source_table: geo_public_consultation.vw_dsp_app_rio_ate_10_piloto_50
+    primary_key: id
+    parent_key: cod_imovel
+    geometry_column: geom
+    srid: 4674
+    created_at_column: created_at
+    updated_at_column: updated_at
+    where_clause: geom IS NOT NULL
+    layer_name: app-rio-ate-10
+    display_name: Permanent Preservation Area of rivers up to 10 meters
+    group_key: feicoes_app
+    active_default: false
+    color: '#ffe11e'
+    fill_color: '#ffe11e'
+  - source_table: geo_public_consultation.vw_dsp_area_consolidada_piloto_50
+    primary_key: id
+    parent_key: cod_imovel
+    geometry_column: geom
+    srid: 4674
+    created_at_column: created_at
+    updated_at_column: updated_at
+    where_clause: geom IS NOT NULL
+    layer_name: area-consolidada
+    display_name: Consolidated area
+    group_key: feicoes_cobertura_solo
+    active_default: false
+    color: '#DDDDDD'
+    fill_color: '#DDDDDD'
+  - source_table: geo_public_consultation.vw_dsp_arl_proposta_piloto_50
+    primary_key: id
+    parent_key: cod_imovel
+    geometry_column: geom
+    srid: 4674
+    created_at_column: created_at
+    updated_at_column: updated_at
+    where_clause: geom IS NOT NULL
+    layer_name: arl-proposta
+    display_name: Proposed Legal Reserve
+    group_key: feicoes_reserva_legal
+    active_default: false
+    color: '#0b5417'
+    fill_color: '#97cc7e'
+  - source_table: geo_public_consultation.vw_dsp_vegetacao_nativa_piloto_50
+    primary_key: id
+    parent_key: cod_imovel
+    geometry_column: geom
+    srid: 4674
+    created_at_column: created_at
+    updated_at_column: updated_at
+    where_clause: geom IS NOT NULL
+    layer_name: vegetacao-nativa
+    display_name: Native vegetation remnant
+    group_key: feicoes_cobertura_solo
+    active_default: false
+    color: '#099C3A'
+    fill_color: '#40AE65'
+  parallelization:
+    level1:
+      thread_pool_size: 1
+      chunk_size: 1
+      page_size: 500
+    level2:
+      thread_pool_size: 2
+      chunk_size: 1
+      page_size: 500
+    level3:
+      thread_pool_size: 2
+      chunk_size: 50
+      page_size: 500
+    area_of_interest:
+      thread_pool_size: 2
+      chunk_size: 50
+      page_size: 500
+installation:
+  kpis:
+    theme_count: 4
+    area_of_interest:
+      label: Rural properties
+      unit_of_measurement: un.
+      optional_label: ha
+      accent_color: '#ffff4e'
+    theme_1:
+      layer: rio-ate-10
+      label: Watercourse up to 10 m
+      unit_of_measurement: ha
+      accent_color: '#AFE0ED'
+    theme_2:
+      layer: app-rio-ate-10
+      label: PPA of rivers up to 10 meters
+      unit_of_measurement: ha
+      accent_color: '#fff07a'
+    theme_3:
+      layer: area-consolidada
+      label: Consolidated area
+      unit_of_measurement: ha
+      accent_color: '#DDDDDD'
+    theme_4:
+      layer: arl-proposta
+      label: Proposed Legal Reserve
+      unit_of_measurement: ha
+      accent_color: '#75a97c'
+  area:
+    unit: ha
+    unit_label: ha
+  formats:
+    date: dd/MM/yyyy
+    date_time: dd/MM/yyyy HH:mm
+  hierarchy:
+    level1:
+      label: Brazil
+      placeholder: Select the country
+    level2:
+      label: State
+      placeholder: Select the state
+    level3:
+      label: Municipality
+      placeholder: Select the municipality
+  screens:
+    home_title: Geographic query — Rural Environmental Registry
+    downloads_title: Geographic data download — CAR
+    identifier:
+      label: Property code (CAR)
+      placeholder: Enter the property code
+    detail:
+      section_title: Rural property
+      area_of_interest_section_title: Registry data
+      registration_date_label: Registration date
+      alteration_date_label: Update date
+      latitude_label: Latitude (centroid)
+      longitude_label: Longitude (centroid)
+      area_label: Property area
+      features_download_label: Export features
+      fields:
+      - field: id
+        label: CAR code
+      - field: uf
+        label: State code
+      - field: municipio
+        label: Municipality
+      - field: bioma
+        label: Biome
+      - field: tipo_imovel
+        label: Property type
+      - field: status_imovel
+        label: Property status
+      - field: situacao_analise
+        label: Analysis status
+      - field: nu_area_imovel
+        label: Declared area (ha)
+      - field: calculated.latitude
+        label: Latitude
+      - field: calculated.longitude
+        label: Longitude
+      - field: calculated.territory_level_2_name
+        label: State
+      - field: calculated.territory_level_3_name
+        label: Municipality
+      - field: created_at
+        label: Registered on
+      - field: updated_at
+        label: Updated on
+    downloads:
+      theme:
+        label: Environmental theme
+        placeholder: All themes
+      level1_section_title: Select the country for territorial downloads
+      level2_section_title: Available states
+      filter_by_title: 'Filter by:'
+map:
+  initial_view:
+    mode: manual
+    latitude: -14.235
+    longitude: -51.925
+    zoom: 4
+  group_names:
+    territorial_division: Territorial division
+    areas_of_interest: Declared rural properties
+    feicoes_app: Declared Permanent Preservation Area
+    feicoes_hidrografia: Declared watercourses
+    feicoes_cobertura_solo: Declared land cover
+    feicoes_reserva_legal: Declared Legal Reserve
+  layers:
+    level1:
+      name: Brazil
+      active_default: false
+      color: '#000000'
+      fill_color: transparent
+    level2:
+      name: State
+      active_default: true
+      color: '#000000'
+      fill_color: transparent
+    level3:
+      name: Municipality
+      active_default: false
+      color: '#000000'
+      fill_color: transparent
+    area_of_interest:
+      name: Rural properties
+      active_default: true
+      color: '#ffff00'
+      fill_color: transparent
+about:
+  enabled: false
+  banner_title: About this instance
+  tabs:
+  - label: Overview
+    file: overview.md

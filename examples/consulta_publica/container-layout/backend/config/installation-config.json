@@ -1,0 +1,196 @@
+{
+  "hierarchy": [
+    {
+      "key": "level1",
+      "label": "Brazil",
+      "placeholder": "Select the country",
+      "order": 1
+    },
+    {
+      "key": "level2",
+      "label": "State",
+      "placeholder": "Select the state",
+      "order": 2
+    },
+    {
+      "key": "level3",
+      "label": "Municipality",
+      "placeholder": "Select the municipality",
+      "order": 3
+    }
+  ],
+  "screens": {
+    "home": {
+      "title": "Geographic query — Rural Environmental Registry",
+      "hierarchyKeys": [
+        "level2",
+        "level3"
+      ],
+      "identifier": {
+        "key": "identifier",
+        "label": "Property code (CAR)",
+        "placeholder": "Enter the property code"
+      },
+      "theme": null,
+      "level1SectionTitle": null,
+      "level2SectionTitle": null,
+      "filterByTitle": null,
+      "detail": {
+        "sectionTitle": "Rural property",
+        "areaOfInterestSectionTitle": "Registry data",
+        "registrationDateLabel": "Registration date",
+        "alterationDateLabel": "Update date",
+        "latitudeLabel": "Latitude (centroid)",
+        "longitudeLabel": "Longitude (centroid)",
+        "areaLabel": "Property area",
+        "featuresDownloadLabel": "Export features",
+        "fields": [
+          {
+            "field": "id",
+            "label": "CAR code"
+          },
+          {
+            "field": "uf",
+            "label": "State code"
+          },
+          {
+            "field": "municipio",
+            "label": "Municipality"
+          },
+          {
+            "field": "bioma",
+            "label": "Biome"
+          },
+          {
+            "field": "tipo_imovel",
+            "label": "Property type"
+          },
+          {
+            "field": "status_imovel",
+            "label": "Property status"
+          },
+          {
+            "field": "situacao_analise",
+            "label": "Analysis status"
+          },
+          {
+            "field": "nu_area_imovel",
+            "label": "Declared area (ha)"
+          },
+          {
+            "field": "calculated.latitude",
+            "label": "Latitude"
+          },
+          {
+            "field": "calculated.longitude",
+            "label": "Longitude"
+          },
+          {
+            "field": "calculated.territory_level_2_name",
+            "label": "State"
+          },
+          {
+            "field": "calculated.territory_level_3_name",
+            "label": "Municipality"
+          },
+          {
+            "field": "created_at",
+            "label": "Registered on"
+          },
+          {
+            "field": "updated_at",
+            "label": "Updated on"
+          }
+        ]
+      }
+    },
+    "downloads": {
+      "title": "Geographic data download — CAR",
+      "hierarchyKeys": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "identifier": null,
+      "theme": {
+        "key": "theme",
+        "label": "Environmental theme",
+        "placeholder": "All themes"
+      },
+      "level1SectionTitle": "Select the country for territorial downloads",
+      "level2SectionTitle": "Available states",
+      "filterByTitle": "Filter by:"
+    }
+  },
+  "kpis": {
+    "maxCards": 5,
+    "primaryCode": "AREA_OF_INTEREST",
+    "cards": [
+      {
+        "code": "AREA_OF_INTEREST",
+        "label": "Rural properties",
+        "unitOfMeasurement": "un.",
+        "optionalLabel": "ha",
+        "accentColor": "#ffff4e",
+        "order": 1,
+        "required": true
+      },
+      {
+        "code": "THEME_1",
+        "label": "Watercourse up to 10 m",
+        "unitOfMeasurement": "ha",
+        "optionalLabel": null,
+        "accentColor": "#AFE0ED",
+        "order": 2,
+        "required": false,
+        "layer": "rio-ate-10"
+      },
+      {
+        "code": "THEME_2",
+        "label": "PPA of rivers up to 10 meters",
+        "unitOfMeasurement": "ha",
+        "optionalLabel": null,
+        "accentColor": "#fff07a",
+        "order": 3,
+        "required": false,
+        "layer": "app-rio-ate-10"
+      },
+      {
+        "code": "THEME_3",
+        "label": "Consolidated area",
+        "unitOfMeasurement": "ha",
+        "optionalLabel": null,
+        "accentColor": "#DDDDDD",
+        "order": 4,
+        "required": false,
+        "layer": "area-consolidada"
+      },
+      {
+        "code": "THEME_4",
+        "label": "Proposed Legal Reserve",
+        "unitOfMeasurement": "ha",
+        "optionalLabel": null,
+        "accentColor": "#75a97c",
+        "order": 5,
+        "required": false,
+        "layer": "arl-proposta"
+      }
+    ]
+  },
+  "areaOfInterest": {
+    "areaUnit": "ha",
+    "areaUnitLabel": "ha"
+  },
+  "formats": {
+    "date": "dd/MM/yyyy",
+    "dateTime": "dd/MM/yyyy HH:mm"
+  },
+  "map": {
+    "initialView": {
+      "mode": "manual",
+      "latitude": -14.235,
+      "longitude": -51.925,
+      "zoom": 4
+    }
+  }
+}

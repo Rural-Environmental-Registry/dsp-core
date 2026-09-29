@@ -1,0 +1,89 @@
+{
+  "wfsBaseUrl": "http://localhost:8026/geoserver-download/dsp/wfs",
+  "themes": [
+    {
+      "code": "area_of_interest",
+      "name": "Rural properties",
+      "typeName": "dsp:area-of-interest",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "direct",
+        "level3Field": "territory_level_3_id"
+      }
+    },
+    {
+      "code": "rio_ate_10",
+      "name": "Natural watercourse up to 10 meters",
+      "typeName": "dsp:rio-ate-10",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    },
+    {
+      "code": "app_rio_ate_10",
+      "name": "Permanent Preservation Area of rivers up to 10 meters",
+      "typeName": "dsp:app-rio-ate-10",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    },
+    {
+      "code": "area_consolidada",
+      "name": "Consolidated area",
+      "typeName": "dsp:area-consolidada",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    },
+    {
+      "code": "arl_proposta",
+      "name": "Proposed Legal Reserve",
+      "typeName": "dsp:arl-proposta",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    },
+    {
+      "code": "vegetacao_nativa",
+      "name": "Native vegetation remnant",
+      "typeName": "dsp:vegetacao-nativa",
+      "formats": [
+        "csv",
+        "gpkg"
+      ],
+      "enabled": true,
+      "territoryFilter": {
+        "strategy": "aoi_linked",
+        "aoiLinkField": "area_of_interest_id"
+      }
+    }
+  ]
+}

@@ -1,0 +1,235 @@
+spring:
+  application:
+    name: dsp-batch
+  main:
+    web-application-type: none
+  datasource:
+    batch:
+      url: jdbc:postgresql://dsp-db:5432/dsp-db?currentSchema=data_migration
+      username: dsp
+      password: dsp
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 10
+        minimum-idle: 2
+        pool-name: batch-pool
+        connection-test-query: SELECT 1
+    source:
+      url: ${DSP_SOURCE_JDBC_URL}
+      username: ${DSP_SOURCE_DB_USER}
+      password: ${DSP_SOURCE_DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        pool-name: source-pool
+    target:
+      url: jdbc:postgresql://dsp-db:5432/dsp-db
+      username: dsp
+      password: dsp
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        pool-name: target-pool
+    geo-target:
+      url: jdbc:postgresql://dsp-geoserver-db:5432/dsp-geoserver-db
+      username: dsp_geo
+      password: dsp_geo
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 5
+        pool-name: geo-target-pool
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: never
+server:
+  port: 8086
+batch:
+  source-timezone: America/Sao_Paulo
+  admin-unit:
+    level-1:
+      source-table: geo_public_consultation.vw_dsp_paises_piloto_50
+      target-table: dsp.territory_level_1
+      primary-key: gid
+      geometry-column: the_geom
+      creation-date-column: created_at
+      where-clause: the_geom IS NOT NULL
+      persist-columns:
+      - gid
+      - created_at
+      - codigo
+      column-mapping:
+        gid: id
+        the_geom: geom
+        created_at: created_at
+        codigo: name
+      layer-name: territory-level-1
+      srid: ${LAYER_SRS_TERRITORY_LEVEL_1:4326}
+    level-2:
+      source-table: geo_public_consultation.vw_dsp_estado_piloto_50
+      target-table: dsp.territory_level_2
+      primary-key: cod_estado
+      partition-column: pais_gid
+      geometry-column: geo_localizacao
+      creation-date-column: created_at
+      where-clause: geo_localizacao IS NOT NULL
+      persist-columns:
+      - cod_estado
+      - created_at
+      - nom_estado
+      - pais_gid
+      column-mapping:
+        cod_estado: id
+        geo_localizacao: geom
+        created_at: created_at
+        nom_estado: name
+        pais_gid: parent_id
+      layer-name: territory-level-2
+      srid: ${LAYER_SRS_TERRITORY_LEVEL_2:4326}
+    level-3:
+      source-table: geo_public_consultation.vw_dsp_municipios_piloto_50
+      target-table: dsp.territory_level_3
+      primary-key: idt_municipio
+      partition-column: cod_estado
+      geometry-column: geo_localizacao
+      creation-date-column: created_at
+      where-clause: geo_localizacao IS NOT NULL
+      persist-columns:
+      - idt_municipio
+      - created_at
+      - nom_municipio
+      - cod_estado
+      column-mapping:
+        idt_municipio: id
+        geo_localizacao: geom
+        created_at: created_at
+        nom_municipio: name
+        cod_estado: parent_id
+      layer-name: territory-level-3
+      srid: ${LAYER_SRS_TERRITORY_LEVEL_3:4326}
+  area-of-interest:
+    source-table: geo_public_consultation.vw_dsp_aoi_iru_piloto_50
+    target-table: dsp.area_of_interest
+    primary-key: cod_imovel
+    creation-date-column: created_at
+    updated-at-column: updated_at
+    commune-id-column: idt_municipio
+    territory-level-3-column: idt_municipio
+    geometry-column: geom
+    where-clause: geom IS NOT NULL
+    additional-columns:
+    - uf
+    - municipio
+    - bioma
+    - tipo_imovel
+    - status_imovel
+    - situacao_analise
+    - nu_area_imovel
+    layer-name: area-of-interest
+    srid: ${LAYER_SRS_AREA_OF_INTEREST:4326}
+  layers:
+  - source-table: geo_public_consultation.vw_dsp_rio_ate_10_piloto_50
+    primary-key: id
+    area-of-interest-id-column: cod_imovel
+    creation-date-column: created_at
+    geometry-column: geom
+    layer-name: rio-ate-10
+    srid: 4674
+    where-clause: geom IS NOT NULL
+    updated-at-column: updated_at
+  - source-table: geo_public_consultation.vw_dsp_app_rio_ate_10_piloto_50
+    primary-key: id
+    area-of-interest-id-column: cod_imovel
+    creation-date-column: created_at
+    geometry-column: geom
+    layer-name: app-rio-ate-10
+    srid: 4674
+    where-clause: geom IS NOT NULL
+    updated-at-column: updated_at
+  - source-table: geo_public_consultation.vw_dsp_area_consolidada_piloto_50
+    primary-key: id
+    area-of-interest-id-column: cod_imovel
+    creation-date-column: created_at
+    geometry-column: geom
+    layer-name: area-consolidada
+    srid: 4674
+    where-clause: geom IS NOT NULL
+    updated-at-column: updated_at
+  - source-table: geo_public_consultation.vw_dsp_arl_proposta_piloto_50
+    primary-key: id
+    area-of-interest-id-column: cod_imovel
+    creation-date-column: created_at
+    geometry-column: geom
+    layer-name: arl-proposta
+    srid: 4674
+    where-clause: geom IS NOT NULL
+    updated-at-column: updated_at
+  - source-table: geo_public_consultation.vw_dsp_vegetacao_nativa_piloto_50
+    primary-key: id
+    area-of-interest-id-column: cod_imovel
+    creation-date-column: created_at
+    geometry-column: geom
+    layer-name: vegetacao-nativa
+    srid: 4674
+    where-clause: geom IS NOT NULL
+    updated-at-column: updated_at
+kpis:
+  theme-count: 4
+  themes:
+  - slot: 1
+    layer-name: rio-ate-10
+    unit-of-measurement: ha
+    label: Watercourse up to 10 m
+  - slot: 2
+    layer-name: app-rio-ate-10
+    unit-of-measurement: ha
+    label: PPA of rivers up to 10 meters
+  - slot: 3
+    layer-name: area-consolidada
+    unit-of-measurement: ha
+    label: Consolidated area
+  - slot: 4
+    layer-name: arl-proposta
+    unit-of-measurement: ha
+    label: Proposed Legal Reserve
+  area-unit-of-measurement: ha
+parallelization:
+  jobs:
+    adminUnitLevel1GeoserverJob:
+      enabled: true
+      thread-pool-size: 1
+      chunk-size: 1
+      page-size: 1000
+      queue-capacity: 100
+    adminUnitLevel2GeoserverJob:
+      enabled: true
+      thread-pool-size: 12
+      chunk-size: 1
+      page-size: 1000
+      queue-capacity: 100
+    adminUnitLevel3GeoserverJob:
+      enabled: true
+      thread-pool-size: 12
+      chunk-size: 470
+      page-size: 1000
+      queue-capacity: 100
+    areaOfInterestGeoserverJob:
+      enabled: true
+      thread-pool-size: 1
+      chunk-size: 100
+      page-size: 1000
+      queue-capacity: 100
+execution-jobs:
+  admin-unit-level-1-geoserver-job: true
+  admin-unit-level-2-geoserver-job: true
+  admin-unit-level-3-geoserver-job: true
+  area-of-interest-geoserver-job: true
+  layer-jobs: true
+  kpi-job: true
+logging:
+  level:
+    br.car.dsp_batch: INFO
