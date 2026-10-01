@@ -151,6 +151,16 @@ def write_adopter_config(
     path.write_text(dump_yaml(deep_merge(template, values)), encoding="utf-8")
 
 
+def unquote_dotenv_value(value: str) -> str:
+    """Drop the surrounding quotes that the shell writer adds in .env."""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        inner = value[1:-1]
+        if value[0] == '"':
+            inner = inner.replace('\\"', '"').replace("\\\\", "\\")
+        return inner
+    return value
+
+
 def read_dotenv_value(env_file: Path, key: str, default: str = "") -> str:
     if not env_file.is_file():
         return default
@@ -161,7 +171,7 @@ def read_dotenv_value(env_file: Path, key: str, default: str = "") -> str:
         if "=" in stripped:
             env_key, _, value = stripped.partition("=")
             if env_key == key:
-                return value
+                return unquote_dotenv_value(value)
     return default
 
 
@@ -1892,6 +1902,10 @@ def layer_name_to_code(layer_name: str) -> str:
     return layer_name.replace("-", "_")
 
 
+# Shared with the backend Downloads screen and the geo-file job.
+DOWNLOAD_FORMATS = ["csv", "gpkg"]
+
+
 def build_download_themes_config(
     values: dict[str, Any],
     extra_layers: list[dict[str, Any]],
@@ -1905,7 +1919,7 @@ def build_download_themes_config(
             "code": "area_of_interest",
             "name": aoi_name,
             "typeName": "dsp:area-of-interest",
-            "formats": ["csv"],
+            "formats": list(DOWNLOAD_FORMATS),
             "enabled": True,
             "territoryFilter": {
                 "strategy": "direct",
@@ -1921,7 +1935,7 @@ def build_download_themes_config(
                 "code": layer_name_to_code(layer_name),
                 "name": entry["display_name"],
                 "typeName": entry["wms_id"],
-                "formats": ["csv"],
+                "formats": list(DOWNLOAD_FORMATS),
                 "enabled": True,
                 "territoryFilter": {
                     "strategy": "aoi_linked",
@@ -2887,7 +2901,7 @@ def validate_job_migration_path(root: Path) -> None:
     if not dockerfile.is_file():
         raise ValueError(
             f"Migration job repository not found at: {path} "
-            f"(expected Dockerfile). Clone rer-dsp-job-data-migration "
+            f"(expected Dockerfile). Clone dsp-job-data-migration "
             f"or set DSP_JOB_MIGRATION_PATH in .env."
         )
 
