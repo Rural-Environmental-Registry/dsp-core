@@ -2,7 +2,7 @@
 
 The **DSP (Data Sharing Platform)** is a web platform for sharing, exploring and publishing geospatial environmental data. **This repository** is the operational entry point: it prepares databases, GeoServer, the nginx gateway and adopter configuration, and orchestrates the other DSP modules via Docker Compose.
 
-Full documentation: **[rer-dsp-docs](https://github.com/Rural-Environmental-Registry/rer-dsp-docs)**
+Full documentation: **[dsp-docs](https://github.com/Rural-Environmental-Registry/dsp-docs)**
 
 ## Prerequisites
 
@@ -18,11 +18,11 @@ On first run, `.env` is created automatically from `.env.example`.
 ## Clone
 
 ```bash
-git clone https://github.com/Rural-Environmental-Registry/rer-dsp-core.git
-cd rer-dsp-core
+git clone https://github.com/Rural-Environmental-Registry/dsp-core.git
+cd dsp-core
 ```
 
-Missing sibling repos (`rer-dsp-backend`, `rer-dsp-frontend`, `rer-dsp-job-data-migration`, and for real installs `rer-dsp-job-geo-file-generation`) are offered for automatic clone by the scripts.
+If a sibling repository is missing, `./config.sh`, `./setup.sh`, and `./start.sh` offer to clone it. They look first in the short folder (`backend`, `frontend`, `job-data-migration`, `job-geo-file-generation`) and, if the code is not there, in the repository folder (`dsp-backend`, `dsp-frontend`, `dsp-job-data-migration`, `dsp-job-geo-file-generation`). When both are missing, the download creates the repository-named folder.
 
 ---
 
@@ -104,7 +104,7 @@ Choose **option 2 — Real adopter**. Defines when and how the first migration r
 
 Required after setup. Use `./start.sh` again on later runs when the stack is already configured.
 
-Details: [Full installation](https://github.com/Rural-Environmental-Registry/rer-dsp-docs/blob/develop/docs/guides/full-installation.md) in rer-dsp-docs.
+Details: [Full installation](https://github.com/Rural-Environmental-Registry/dsp-docs/blob/develop/docs/guides/full-installation.md) in rer-dsp-docs.
 
 ---
 
@@ -135,3 +135,5 @@ If port 8026 is in use, change `DSP_GATEWAY_HOST_PORT` and `DSP_PUBLIC_BASE_URL`
 ## License
 
 [GNU General Public License v3.0](LICENSE)
+
+<small><strong>Copyright © 2026 Government of Brazil — Ministry of Management and Innovation in Public Services</strong></small>
