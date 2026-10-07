@@ -83,7 +83,7 @@ etl:
   area_of_interest:
     source_table: "<source_schema>.<source_table>"
     primary_key: "<source_pk>"
-    territory_level_3_column: "<source_territory_level_3_fk>"
+    territory_level_3_column: "<source_territory_level_3_fk>"  # optional; DSP derives from geometry if omitted
     geometry_column: "<source_geom>"
     created_at_column: "<source_created_at>"
     updated_at_column: "<source_updated_at>"           # optional column

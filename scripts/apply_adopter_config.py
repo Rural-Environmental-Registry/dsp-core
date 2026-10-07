@@ -521,7 +521,10 @@ def etl_field_help(field: str) -> str:
         "label_column": (
             "Source column with the feature display name (optional). "
         ),
-        "territory_level_3_column": "Source column linking an area to territorial level 3.",
+        "territory_level_3_column": (
+            "Source column with the foreign key to territorial level 3 (optional). "
+            "If omitted, the DSP assigns territory_level_3_id from AOI geometry during migration."
+        ),
         "area_column": "Source column containing the area measurement.",
         "additional_columns": (
             "Other source columns to copy besides the required ones. "
@@ -2495,7 +2498,7 @@ def wizard(example: Path, active: Path, *, edit: bool = False, root: Path | None
         section = config["etl"][name]
         for field in fields:
             section = config["etl"][name]
-            if field == "updated_at_column":
+            if field in ("updated_at_column", "territory_level_3_column"):
                 section[field] = ask_optional_field(
                     field,
                     section.get(field),
@@ -3123,7 +3126,7 @@ def apply_config(root: Path, active: Path, *, quiet: bool = False) -> None:
         aoi_values.get("updated_at_column"),
         "etl.area_of_interest.updated_at_column",
     )
-    territory_level_3_column = require_non_blank_column(
+    territory_level_3_column = resolve_optional_column(
         aoi_values.get("territory_level_3_column"),
         "etl.area_of_interest.territory_level_3_column",
     )
@@ -3137,8 +3140,6 @@ def apply_config(root: Path, active: Path, *, quiet: bool = False) -> None:
                 aoi_values.get("created_at_column"),
                 "etl.area_of_interest.created_at_column",
             ),
-            "commune-id-column": territory_level_3_column,
-            "territory-level-3-column": territory_level_3_column,
             "geometry-column": require_non_blank_column(
                 aoi_values.get("geometry_column"),
                 "etl.area_of_interest.geometry_column",
@@ -3146,6 +3147,12 @@ def apply_config(root: Path, active: Path, *, quiet: bool = False) -> None:
             "where-clause": aoi_values.get("where_clause") or "1=1",
         }
     )
+    if territory_level_3_column:
+        aoi["commune-id-column"] = territory_level_3_column
+        aoi["territory-level-3-column"] = territory_level_3_column
+    else:
+        aoi.pop("commune-id-column", None)
+        aoi.pop("territory-level-3-column", None)
     if updated_at_column:
         aoi["updated-at-column"] = updated_at_column
     else:
