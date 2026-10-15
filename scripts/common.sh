@@ -1857,7 +1857,7 @@ show_stack_status_menu() {
 }
 
 # Interactive data-prep menu for ./setup.sh.
-# Sets globals: SETUP_MODE (demo|real), WILL_MIGRATE, KEEP_MIGRATION_SERVICE,
+# Sets globals: SETUP_MODE (demo|real|rer), WILL_MIGRATE, KEEP_MIGRATION_SERVICE,
 # MIGRATION_EXECUTION_MODE, MIGRATION_CRON, MIGRATION_SCHEDULED_AT,
 # GEO_FILE_GENERATION_CRON, GEO_FILE_GENERATION_RECURRING, GEO_FILE_GENERATION_WAIT.
 # Not a command substitution on purpose: error output must reach the terminal.
@@ -1874,13 +1874,17 @@ prompt_setup_data_mode() {
   echo "     Requires ./config.sh first, then runs ETL from your JDBC source into dsp-db and the GeoServer DB."
   echo "     Use for a production-like setup when your source database is ready to import."
   echo ""
-  echo "  3) Stack status / cleanup / exit"
+  echo "  3) RER Configuration — migrates data originating from the RER application."
+  echo "     Requires a configuration file compatible with the RER application."
+  echo "     Use this after running config.sh with the RER option."
+  echo ""
+  echo "  4) Stack status / cleanup / exit"
   echo "     Shows container status and service URLs; optionally removes this project's Docker resources, then exits."
   echo "     Use to inspect the stack or reset containers/volumes without loading or migrating data."
   echo ""
   echo "How do you want to prepare data?"
   local choice=""
-  read -r -p "Choice [1/2/3]: " choice || true
+  read -r -p "Choice [1/2/3/4]: " choice || true
   case "$choice" in
     1)
       SETUP_MODE="demo"
@@ -1892,10 +1896,21 @@ prompt_setup_data_mode() {
       prompt_real_adopter_migration_plan
       ;;
     3)
+      SETUP_MODE="rer"
+      WILL_MIGRATE=true
+      KEEP_MIGRATION_SERVICE=true
+      MIGRATION_EXECUTION_MODE="continuous"
+      MIGRATION_CRON="$(dsp_build_minute_cron 2)"
+      MIGRATION_SCHEDULED_AT=""
+      GEO_FILE_GENERATION_CRON="$(dsp_build_minute_cron 2)"
+      GEO_FILE_GENERATION_RECURRING=true
+      GEO_FILE_GENERATION_WAIT=false
+      ;;
+    4)
       show_stack_status_menu
       ;;
     *)
-      error "Invalid choice: '${choice}' — use 1 (demonstration), 2 (real adopter) or 3 (status)."
+      error "Invalid choice: '${choice}' — use 1 (demonstration), 2 (real adopter), 3 (RER configuration) or 4 (status)."
       error "Run './${DSP_ORCHESTRATION_SCRIPT}' again."
       exit 1
       ;;

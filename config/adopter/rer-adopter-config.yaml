@@ -1,0 +1,271 @@
+environment:
+  source_jdbc_url: jdbc:postgresql://host.docker.internal:5432/car_db
+  source_db_user: car_user
+  source_db_password: car_pass
+  layer_srs:
+    territory_level_1: 4326
+    territory_level_2: 4326
+    territory_level_3: 4326
+    area_of_interest: 4326
+  object_storage:
+    endpoint: ''
+    region: us-east-1
+    bucket: dsp-geo-files
+    access_key: ''
+    secret_key: ''
+    path_style_access: true
+    generation_cron: 0 2 * * *
+etl:
+  level1:
+    source_table: public.country
+    primary_key: id
+    name_column: country
+    geometry_column: geometry
+    created_at_column: create_date
+    updated_at_column: null
+    where_clause: 1=1
+  level2:
+    source_table: public.state
+    primary_key: cd_uf
+    parent_key: country_id
+    name_column: nm_uf
+    geometry_column: geometry
+    created_at_column: create_date
+    updated_at_column: null
+    where_clause: 1=1
+  level3:
+    source_table: public.municipality
+    primary_key: id
+    parent_key: cd_uf
+    name_column: nm_mun
+    geometry_column: geometry
+    created_at_column: create_date
+    updated_at_column: null
+    where_clause: 1=1
+  area_of_interest:
+    source_table: public.property
+    primary_key: id
+    territory_level_3_column: null
+    geometry_column: geometry
+    created_at_column: created_at
+    updated_at_column: updated_at
+    area_column: area
+    additional_columns:
+    - property_name
+    where_clause: 1=1
+  layers:
+  - source_table: public.consolidated_area
+    parent_key: property_id
+    primary_key: id
+    created_at_column: create_date
+    updated_at_column: null
+    label_column: null
+    geometry_column: geometry
+    additional_columns: []
+    where_clause: 1=1
+    layer_name: consolidated_area
+    srid: 4326
+    display_name: Consolidated Area
+    group_key: environmental_layers
+    active_default: true
+    color: '#2563EB'
+    fill_color: transparent
+  - source_table: public.remaining_native_vegetation
+    parent_key: property_id
+    primary_key: id
+    created_at_column: create_date
+    updated_at_column: null
+    label_column: null
+    geometry_column: geometry
+    additional_columns: []
+    where_clause: 1=1
+    layer_name: remaining_native_vegetation
+    srid: 4326
+    display_name: Remaining Native Vegetation
+    group_key: environmental_layers
+    active_default: true
+    color: '#2563EB'
+    fill_color: transparent
+  - source_table: public.legal_reserve
+    parent_key: property_id
+    primary_key: id
+    created_at_column: create_date
+    updated_at_column: null
+    label_column: null
+    geometry_column: geometry
+    additional_columns: []
+    where_clause: 1=1
+    layer_name: legal_reserve
+    srid: 4326
+    display_name: Legal Reserve
+    group_key: environmental_layers
+    active_default: true
+    color: '#2563EB'
+    fill_color: transparent
+  - source_table: public.river
+    parent_key: property_id
+    primary_key: id
+    created_at_column: create_date
+    updated_at_column: null
+    label_column: null
+    geometry_column: geometry
+    additional_columns: []
+    where_clause: 1=1
+    layer_name: river
+    srid: 4326
+    display_name: River
+    group_key: environmental_layers
+    active_default: true
+    color: '#2563EB'
+    fill_color: transparent
+  - source_table: public.river_up_to_10m
+    parent_key: property_id
+    primary_key: id
+    created_at_column: create_date
+    updated_at_column: null
+    label_column: null
+    geometry_column: geometry
+    additional_columns: []
+    where_clause: 1=1
+    layer_name: river_up_to_10m
+    srid: 4326
+    display_name: River up to 10m
+    group_key: environmental_layers
+    active_default: true
+    color: '#2563EB'
+    fill_color: transparent
+  parallelization:
+    level1:
+      thread_pool_size: 1
+      chunk_size: 1
+      page_size: 1000
+    level2:
+      thread_pool_size: 4
+      chunk_size: 1
+      page_size: 1000
+    level3:
+      thread_pool_size: 4
+      chunk_size: 100
+      page_size: 1000
+    area_of_interest:
+      thread_pool_size: 1
+      chunk_size: 100
+      page_size: 1000
+installation:
+  kpis:
+    theme_count: 4
+    area_of_interest:
+      label: Registered properties
+      unit_of_measurement: un.
+      optional_label: m²
+      accent_color: '#d3e500'
+    theme_1:
+      layer: consolidated_area
+      label: Consolidated Area
+      unit_of_measurement: m²
+      accent_color: '#cf95e5'
+    theme_2:
+      layer: remaining_native_vegetation
+      label: Remaining Native Vegetation
+      unit_of_measurement: m²
+      accent_color: '#a698e5'
+    theme_3:
+      layer: legal_reserve
+      label: Legal Reserve
+      unit_of_measurement: m²
+      accent_color: '#91c9e5'
+    theme_4:
+      layer: river
+      label: River
+      unit_of_measurement: m²
+      accent_color: '#8ce5b5'
+  area:
+    unit: m2
+    unit_label: m²
+  formats:
+    date: dd/MM/yyyy
+    date_time: dd/MM/yyyy HH:mm
+  hierarchy:
+    level1:
+      label: Country
+      placeholder: Select Country
+    level2:
+      label: State
+      placeholder: Select State
+    level3:
+      label: Municipality
+      placeholder: Select Municipality
+  screens:
+    home_title: Browse registered data
+    downloads_title: Download public data
+    identifier:
+      label: Identifier
+      placeholder: Enter the identifier
+    detail:
+      section_title: Search details
+      area_of_interest_section_title: Area of interest data
+      registration_date_label: Registration date
+      alteration_date_label: Alteration date
+      latitude_label: Latitude
+      longitude_label: Longitude
+      area_label: Area
+      features_download_label: Download features
+      fields:
+      - field: property_name
+        label: Property name
+      - field: created_at
+        label: Registered on
+      - field: area
+        label: Declared area (ha)
+      - field: calculated.latitude
+        label: Latitude
+      - field: calculated.longitude
+        label: Longitude
+      - field: calculated.territory_level_2_name
+        label: State
+      - field: calculated.territory_level_3_name
+        label: Municipality
+    downloads:
+      theme:
+        label: Theme
+        placeholder: All themes
+      level1_section_title: Select the continent you want to access for Downloads
+      level2_section_title: Options for the selected continent
+      filter_by_title: 'Filter by:'
+map:
+  initial_view:
+    mode: territorial_bbox
+    latitude: null
+    longitude: null
+    zoom: null
+  group_names:
+    territorial_division: Territorial division
+    areas_of_interest: Declared areas of interest
+    environmental_layers: Environmental layers
+  layers:
+    level1:
+      name: Country
+      active_default: false
+      color: '#9D174D'
+      fill_color: transparent
+    level2:
+      name: State
+      active_default: false
+      color: '#DB2777'
+      fill_color: transparent
+    level3:
+      name: Municipality
+      active_default: false
+      color: '#701A3A'
+      fill_color: transparent
+    area_of_interest:
+      name: Registered properties
+      active_default: true
+      color: '#F59E0B'
+      fill_color: '#FEF3C7'
+about:
+  enabled: true
+  banner_title: About
+  tabs:
+  - label: Overview
+    file: overview.md

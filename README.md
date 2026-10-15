@@ -75,6 +75,9 @@ Configura o adotante
     │
     ├─► Demonstration (seed embutido, sem JDBC)
     │
+    ├─► RER configuration
+    │       primeira carga agora; migração e downloads a cada 2 minutos
+    │
     └─► Real adopter
             │
             ▼
@@ -93,8 +96,8 @@ Configura o adotante
    One-time    Continuous
 ```
 
-- `./config.sh` — configura somente o adotante (dados, mappings, camadas, interface, credenciais SeaweedFS no `.env`). **Não** pergunta horário de job batch.
-- `./setup.sh` — escolhe demonstração ou adotante real; no adotante real, define **quando** e **como** a migração roda e o cron da **pré-geração** de arquivos (`DSP_GEO_FILE_GENERATION_CRON` no `.env`).
+- `./config.sh` — configura somente o adotante (dados, mappings, camadas, interface, credenciais SeaweedFS no `.env`). A opção 4 aplica `rer-adopter-config.yaml` e gera os arquivos operacionais. **Não** pergunta horário de job batch.
+- `./setup.sh` — escolhe demonstração, configuração RER ou adotante real. Na configuração RER, a primeira migração roda no setup e, depois, dados e arquivos de download são gerados a cada 2 minutos. No adotante real, define **quando** e **como** a migração roda e o cron da **pré-geração** de arquivos (`DSP_GEO_FILE_GENERATION_CRON` no `.env`).
 - `./start.sh` — sobe a stack usando a configuração já definida (não pergunta agendas de job).
 
 No wizard do `./config.sh`, L1, L2, L3 e AOI são sempre configurados; generic layers são opcionais (`etl.layers`). O `application.yaml` do job recebe `execution-jobs` derivados automaticamente (jobs estruturais sempre `true`; `layer-jobs` só quando houver generic layers).
