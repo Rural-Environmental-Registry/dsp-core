@@ -105,6 +105,7 @@ services:
     restart: unless-stopped
     ports:
       - "${DSP_OBJECT_STORAGE_HOST_PORT:-8333}:8333"
+      - "${DSP_OBJECT_STORAGE_FILER_HOST_PORT:-8888}:8888"
     expose:
       - "8333"
     environment:
