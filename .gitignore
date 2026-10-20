@@ -12,6 +12,7 @@ config/adopter/adopter-config.yaml
 config/about/about-config.json
 config/about/*.md
 !config/about/*.md.example
+!config/about/overview.rer.md
 
 # IDEs
 .idea/

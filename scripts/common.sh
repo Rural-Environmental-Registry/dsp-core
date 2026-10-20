@@ -1328,7 +1328,11 @@ run_migration_job_once() {
 run_geo_file_generation_job_once() {
   wait_for_geo_file_generation_schema
   remove_stale_compose_run_container "dsp-job-geo-file-generation"
-  DSP_GEO_FILE_GENERATION_EXECUTION_MODE=once docker compose --env-file .env --profile object-storage up --build \
+  # Recurring setup already wrote unless-stopped to .env. With that policy the
+  # one-shot container restarts and --abort-on-container-exit never returns.
+  DSP_GEO_FILE_GENERATION_EXECUTION_MODE=once \
+    DSP_GEO_FILE_GENERATION_RESTART_POLICY=no \
+    docker compose --env-file .env --profile object-storage up --build \
     --abort-on-container-exit --exit-code-from dsp-job-geo-file-generation \
     dsp-job-geo-file-generation
   docker update --restart no dsp-job-geo-file-generation >/dev/null 2>&1 || true
