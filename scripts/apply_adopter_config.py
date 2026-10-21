@@ -151,6 +151,16 @@ def write_adopter_config(
     path.write_text(dump_yaml(deep_merge(template, values)), encoding="utf-8")
 
 
+def unquote_dotenv_value(value: str) -> str:
+    """Drop the surrounding quotes that the shell writer adds in .env."""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        inner = value[1:-1]
+        if value[0] == '"':
+            inner = inner.replace('\\"', '"').replace("\\\\", "\\")
+        return inner
+    return value
+
+
 def read_dotenv_value(env_file: Path, key: str, default: str = "") -> str:
     if not env_file.is_file():
         return default
@@ -161,7 +171,7 @@ def read_dotenv_value(env_file: Path, key: str, default: str = "") -> str:
         if "=" in stripped:
             env_key, _, value = stripped.partition("=")
             if env_key == key:
-                return value
+                return unquote_dotenv_value(value)
     return default
 
 
@@ -1895,6 +1905,10 @@ def layer_name_to_code(layer_name: str) -> str:
     return layer_name.replace("-", "_")
 
 
+# Shared with the backend Downloads screen and the geo-file job.
+DOWNLOAD_FORMATS = ["csv", "gpkg"]
+
+
 def build_download_themes_config(
     values: dict[str, Any],
     extra_layers: list[dict[str, Any]],
@@ -1908,7 +1922,7 @@ def build_download_themes_config(
             "code": "area_of_interest",
             "name": aoi_name,
             "typeName": "dsp:area-of-interest",
-            "formats": ["csv"],
+            "formats": list(DOWNLOAD_FORMATS),
             "enabled": True,
             "territoryFilter": {
                 "strategy": "direct",
@@ -1924,7 +1938,7 @@ def build_download_themes_config(
                 "code": layer_name_to_code(layer_name),
                 "name": entry["display_name"],
                 "typeName": entry["wms_id"],
-                "formats": ["csv"],
+                "formats": list(DOWNLOAD_FORMATS),
                 "enabled": True,
                 "territoryFilter": {
                     "strategy": "aoi_linked",
@@ -2559,7 +2573,6 @@ def wizard(example: Path, active: Path, *, edit: bool = False, root: Path | None
         "Pattern for dates with time (e.g. dd/MM/yyyy HH:mm).",
         "detail screens",
     )
-    ask_object_storage(config)
 
     print("\n" + "=" * 72)
     print("Stage 4/5 — Interface")
@@ -2639,29 +2652,6 @@ def wizard(example: Path, active: Path, *, edit: bool = False, root: Path | None
     write_adopter_config(active, config, template)
     print(f"\nConfiguration saved to {active}")
     return True
-
-
-def ask_object_storage(config: dict[str, Any]) -> None:
-    """Configures the SeaweedFS object storage bundled in rer-dsp-core for pre-generated downloads."""
-    storage = config["environment"].setdefault(
-        "object_storage", copy.deepcopy(OBJECT_STORAGE_DEFAULTS)
-    )
-    print("\nObject storage (SeaweedFS) for pre-generated download files")
-    print("  The DSP ships dsp-object-storage in the core stack (real adopter installs).")
-    print(f"  Endpoint: {OBJECT_STORAGE_DEFAULTS['endpoint']}")
-    print(f"  Bucket: {OBJECT_STORAGE_DEFAULTS['bucket']} (created on startup if missing)")
-    storage.update(copy.deepcopy(OBJECT_STORAGE_DEFAULTS))
-    while True:
-        cron = ask_field(
-            "Pre-generation cron",
-            storage.get("generation_cron") or OBJECT_STORAGE_DEFAULTS["generation_cron"],
-            "Schedule of the geo file job, in a window after the migration (5 fields).",
-            "the dsp-job-geo-file-generation service",
-        )
-        if len(str(cron).split()) == 5:
-            storage["generation_cron"] = str(cron)
-            break
-        print("\n  The cron needs 5 fields (minute hour day month weekday).")
 
 
 def ask_about_page(config: dict[str, Any], about_dir: Path) -> None:
@@ -2914,7 +2904,7 @@ def validate_job_migration_path(root: Path) -> None:
     if not dockerfile.is_file():
         raise ValueError(
             f"Migration job repository not found at: {path} "
-            f"(expected Dockerfile). Clone rer-dsp-job-data-migration "
+            f"(expected Dockerfile). Clone dsp-job-data-migration "
             f"or set DSP_JOB_MIGRATION_PATH in .env."
         )
 

@@ -27,8 +27,8 @@ _COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=migration_schedule.sh
 source "$_COMMON_DIR/migration_schedule.sh"
 
-# Base pública da stack (gateway). DSP_PUBLIC_BASE_URL tem precedência; sem ela,
-# monta a URL a partir do host e da porta do gateway, omitindo a porta 80.
+# Public base URL of the stack (gateway). DSP_PUBLIC_BASE_URL takes precedence; otherwise
+# build the URL from the gateway host and port, omitting port 80.
 dsp_public_base_url() {
   if [ -n "${DSP_PUBLIC_BASE_URL:-}" ]; then
     echo "${DSP_PUBLIC_BASE_URL%/}"
@@ -275,8 +275,8 @@ ensure_download_themes_config() {
   warn_urls_outside_gateway "$active" "Download themes config"
 }
 
-# As URLs de WMS/WFS são consumidas pelo browser e precisam apontar para o gateway.
-# Configs gerados antes do gateway ainda trazem as portas antigas e quebram o mapa em silêncio.
+# WMS/WFS URLs are consumed by the browser and must point at the gateway.
+# Configs generated before the gateway still carry legacy host ports and break the map silently.
 warn_urls_outside_gateway() {
   local cfg="$1"
   local label="$2"
@@ -384,9 +384,7 @@ PY
   ok "WMS layer ids and style colors match Exhibition contract"
 }
 
-# Ensures config/map/mapLayersConfig.json exists, is valid JSON, was edited
-# from the template, and keeps the required WMS layer ids/colors. Shared by
-# setup.sh and start.sh so the validation stays identical in both.
+# Ensures mapLayersConfig.json is valid, differs from template, and has required WMS ids/colors. Used by setup.sh.
 ensure_map_layers_config() {
   local example="$ROOT_DIR/config/map/mapLayersConfig.json.example"
   local active="$ROOT_DIR/config/map/mapLayersConfig.json"
@@ -402,8 +400,8 @@ ensure_map_layers_config() {
   warn_urls_outside_gateway "$active" "Map layers config"
 }
 
-# Checa a REST API por dentro do container: os GeoServers não publicam porta no host,
-# o acesso externo passa pelo gateway (que sobe depois deles).
+# Check the REST API from inside the container: GeoServers do not publish a host port;
+# external access goes through the gateway (which starts after them).
 wait_for_geoserver() {
   local compose_service="${1:-dsp-geoserver-exhibition}"
   local user="$2"
@@ -864,10 +862,10 @@ require_docker() {
   ok "Docker and Docker Compose OK"
 }
 
-DSP_REPO_BACKEND_URL="https://github.com/Rural-Environmental-Registry/rer-dsp-backend.git"
-DSP_REPO_FRONTEND_URL="https://github.com/Rural-Environmental-Registry/rer-dsp-frontend.git"
-DSP_REPO_JOB_URL="https://github.com/Rural-Environmental-Registry/rer-dsp-job-data-migration.git"
-DSP_REPO_GEO_FILE_JOB_URL="https://github.com/Rural-Environmental-Registry/rer-dsp-job-geo-file-generation.git"
+DSP_REPO_BACKEND_URL="https://github.com/Rural-Environmental-Registry/dsp-backend.git"
+DSP_REPO_FRONTEND_URL="https://github.com/Rural-Environmental-Registry/dsp-frontend.git"
+DSP_REPO_JOB_URL="https://github.com/Rural-Environmental-Registry/dsp-job-data-migration.git"
+DSP_REPO_GEO_FILE_JOB_URL="https://github.com/Rural-Environmental-Registry/dsp-job-geo-file-generation.git"
 
 require_git() {
   if ! command -v git >/dev/null 2>&1; then
@@ -922,7 +920,9 @@ print_dsp_repository_preview() {
   if [ "$uses_sibling_layout" = true ]; then
     common_parent="$core_parent"
     echo "  ${common_parent}/"
-    echo "  ├── rer-dsp-core/              (already exists — you are here)"
+    local core_folder
+    core_folder="$(basename "$core_abs")"
+    echo "  ├── ${core_folder}/              (already exists — you are here)"
 
     for line in "${preview_lines[@]}"; do
       IFS='|' read -r label abs _url status <<<"$line"
@@ -1005,67 +1005,123 @@ ensure_dsp_repositories() {
   local -a missing_labels=()
   local -a missing_abs=()
   local -a missing_urls=()
+  local -a missing_env_keys=()
+  local -a missing_rels=()
 
+  # Write the chosen path without quotes. The Python reader uses the raw .env line.
+  _persist_dsp_repo_path() {
+    local key="$1"
+    local rel="$2"
+    local env_file="${ROOT_DIR:-.}/.env"
+    local line=""
+    local raw=""
+
+    if [ -f "$env_file" ]; then
+      line="$(grep -m1 "^${key}=" "$env_file" || true)"
+      raw="${line#*=}"
+    fi
+
+    if [ "$raw" = "$rel" ]; then
+      export "${key}=${rel}"
+      return 0
+    fi
+
+    set_env_var_plain "$key" "$rel"
+  }
+
+  # Look in the short folder, then in the repository-named folder.
+  # When both are missing, clone into the repository-named folder.
   _ensure_dsp_repo_check() {
     local label="$1"
-    local path="$2"
-    local url="$3"
-    local found_label="$4"
-    local abs
-    local status
+    local short_path="$2"
+    local long_path="$3"
+    local url="$4"
+    local found_label="$5"
+    local env_key="$6"
+    local candidate=""
+    local abs=""
+    local status=""
+    local chosen_rel=""
+    local chosen_abs=""
+    local invalid_abs=""
 
-    abs="$(resolve_path "$path")"
-    status="$(classify_dsp_repository_path "$abs")"
+    for candidate in "$short_path" "$long_path"; do
+      abs="$(resolve_path "$candidate")"
+      status="$(classify_dsp_repository_path "$abs")"
+      case "$status" in
+        ok)
+          chosen_rel="$candidate"
+          chosen_abs="$abs"
+          break
+          ;;
+        invalid)
+          if [ -z "$invalid_abs" ]; then
+            invalid_abs="$abs"
+          fi
+          ;;
+      esac
+    done
 
-    case "$status" in
-      ok)
-        ok "${found_label} found: ${abs}"
-        preview_lines+=("${label}|${abs}|${url}|ok")
-        ;;
-      invalid)
-        error "${found_label} directory exists but Dockerfile is missing: ${abs}"
-        error "Fix the path in .env or use a valid clone of ${label}."
-        exit 1
-        ;;
-      missing)
-        preview_lines+=("${label}|${abs}|${url}|missing")
-        missing_labels+=("$label")
-        missing_abs+=("$abs")
-        missing_urls+=("$url")
-        ;;
-    esac
+    if [ -n "$chosen_rel" ]; then
+      ok "${found_label} found: ${chosen_abs}"
+      preview_lines+=("${label}|${chosen_abs}|${url}|ok")
+      _persist_dsp_repo_path "$env_key" "$chosen_rel"
+      return 0
+    fi
+
+    if [ -n "$invalid_abs" ]; then
+      error "${found_label} directory exists but Dockerfile is missing: ${invalid_abs}"
+      error "Fix the path in .env or use a valid clone of ${label}."
+      exit 1
+    fi
+
+    abs="$(resolve_path "$long_path")"
+    preview_lines+=("${label}|${abs}|${url}|missing")
+    missing_labels+=("$label")
+    missing_abs+=("$abs")
+    missing_urls+=("$url")
+    missing_env_keys+=("$env_key")
+    missing_rels+=("$long_path")
   }
 
   if [ "$want_backend" = true ]; then
     _ensure_dsp_repo_check \
-      "rer-dsp-backend" \
-      "${DSP_BACKEND_PATH:-../rer-dsp-backend}" \
+      "dsp-backend" \
+      "../backend" \
+      "../dsp-backend" \
       "$DSP_REPO_BACKEND_URL" \
-      "Backend"
+      "Backend" \
+      "DSP_BACKEND_PATH"
   fi
 
   if [ "$want_frontend" = true ]; then
     _ensure_dsp_repo_check \
-      "rer-dsp-frontend" \
-      "${DSP_FRONTEND_PATH:-../rer-dsp-frontend}" \
+      "dsp-frontend" \
+      "../frontend" \
+      "../dsp-frontend" \
       "$DSP_REPO_FRONTEND_URL" \
-      "Frontend"
+      "Frontend" \
+      "DSP_FRONTEND_PATH"
   fi
 
   if [ "$want_job" = true ]; then
     _ensure_dsp_repo_check \
-      "rer-dsp-job-data-migration" \
-      "${DSP_JOB_MIGRATION_PATH:-../rer-dsp-job-data-migration}" \
+      "dsp-job-data-migration" \
+      "../job-data-migration" \
+      "../dsp-job-data-migration" \
       "$DSP_REPO_JOB_URL" \
-      "Migration job"
+      "Migration job" \
+      "DSP_JOB_MIGRATION_PATH"
   fi
 
   if [ "$want_geo_file_job" = true ]; then
     _ensure_dsp_repo_check \
-      "rer-dsp-job-geo-file-generation" \
-      "${DSP_JOB_GEO_FILE_GENERATION_PATH:-../rer-dsp-job-geo-file-generation}" \
+      "dsp-job-geo-file-generation" \
+      "../job-geo-file-generation" \
+      "../dsp-job-geo-file-generation" \
       "$DSP_REPO_GEO_FILE_JOB_URL" \
-      "Geo file generation job"
+      "Geo file generation job" \
+      "DSP_JOB_GEO_FILE_GENERATION_PATH"
   fi
 
   if [ "${#missing_labels[@]}" -eq 0 ]; then
@@ -1099,6 +1155,7 @@ ensure_dsp_repositories() {
       exit 1
     fi
     ok "${missing_labels[$i]} cloned: ${dest}"
+    _persist_dsp_repo_path "${missing_env_keys[$i]}" "${missing_rels[$i]}"
   done
 }
 
@@ -1201,6 +1258,31 @@ migrate_dotenv_to_gateway() {
   fi
 }
 
+set_env_var_plain() {
+  local key="$1"
+  local value="$2"
+  local env_file="${ROOT_DIR:-.}/.env"
+
+  if [ ! -f "$env_file" ]; then
+    error ".env not found — run ensure_dotenv first."
+    exit 1
+  fi
+
+  if grep -q "^${key}=" "$env_file"; then
+    local tmp
+    tmp="$(mktemp)"
+    awk -v k="$key" -v v="$value" '
+      $0 ~ "^" k "=" { print k "=" v; next }
+      { print }
+    ' "$env_file" >"$tmp"
+    mv "$tmp" "$env_file"
+  else
+    printf '\n%s=%s\n' "$key" "$value" >>"$env_file"
+  fi
+
+  export "${key}=${value}"
+}
+
 set_env_var() {
   local key="$1"
   local value="$2"
@@ -1282,6 +1364,7 @@ persist_batch_jobs_env() {
   set_env_var "DSP_GEO_FILE_GENERATION_EXECUTION_MODE" "$geo_mode"
   set_env_var "DSP_GEO_FILE_GENERATION_RESTART_POLICY" "$geo_restart"
   set_env_var "DSP_FIRST_DATA_LOAD_MARKER" "/dsp-batch-markers/first_data_load.ready"
+  set_env_var "DSP_SETUP_DATA_MODE" "real"
 }
 
 is_recurring_geo_file_generation_mode() {
@@ -1383,9 +1466,21 @@ compose_profile_args() {
 }
 
 clear_object_storage_env_for_demo() {
+  set_env_var "DSP_SETUP_DATA_MODE" "demo"
   set_env_var "DSP_OBJECT_STORAGE_ENDPOINT" ""
   set_env_var "DSP_OBJECT_STORAGE_ACCESS_KEY" ""
   set_env_var "DSP_OBJECT_STORAGE_SECRET_KEY" ""
+  set_env_var "DSP_MIGRATION_EXECUTION_MODE" "once"
+  set_env_var "DSP_MIGRATION_CRON" ""
+  set_env_var "DSP_MIGRATION_SCHEDULED_AT" ""
+  set_env_var "DSP_GEO_FILE_GENERATION_RECURRING" "true"
+  set_env_var "DSP_GEO_FILE_GENERATION_CRON" ""
+  set_env_var "DSP_GEO_FILE_GENERATION_EXECUTION_MODE" "continuous"
+}
+
+# Demonstration setup (./setup.sh option 1): DBs + GeoServers only; no migration/object-storage jobs.
+is_demo_stack_mode() {
+  [ "${DSP_SETUP_DATA_MODE:-}" = "demo" ]
 }
 
 wait_for_object_storage_health() {
@@ -1620,6 +1715,185 @@ start_databases_and_wait() {
   ok "dsp-geoserver-db ready"
 
   ok "Databases are ready"
+}
+
+# Checks config file exists and JSON is valid (no template comparison).
+ensure_runtime_json_file() {
+  local label="$1"
+  local active="$2"
+
+  if [ ! -f "$active" ]; then
+    error "${label} not found:"
+    echo "        $active"
+    error "Run ./config.sh and ./setup.sh first."
+    exit 1
+  fi
+  if ! validate_json_file "$active"; then
+    error "${label} contains invalid JSON:"
+    echo "        $active"
+    exit 1
+  fi
+  ok "${label} present: $active"
+}
+
+# Light validation for ./start.sh (exists + valid JSON; no template comparison).
+ensure_runtime_config_files_exist() {
+  ensure_runtime_json_file "Installation config" \
+    "$ROOT_DIR/config/installation/installation-config.json"
+  ensure_runtime_json_file "Map layers config" \
+    "$ROOT_DIR/config/map/mapLayersConfig.json"
+  ensure_runtime_json_file "Download themes config" \
+    "$ROOT_DIR/config/downloads/downloadThemesConfig.json"
+}
+
+# Infrastructure container is ready (HEALTHY, RUNNING, or STARTING in compose ps).
+is_setup_infra_service_ready() {
+  local svc="$1"
+  local status
+
+  status="$(stack_service_status "$svc")"
+  case "$status" in
+    HEALTHY|RUNNING|STARTING)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# Core DB + GeoServer services required for both demo and real adopter.
+setup_infra_core_services() {
+  printf '%s\n' \
+    dsp-db \
+    dsp-geoserver-db \
+    dsp-geoserver-exhibition \
+    dsp-geoserver-download
+}
+
+# Services ./setup.sh must leave running before ./start.sh.
+setup_infra_required_services() {
+  if is_demo_stack_mode || is_quickstart_configured; then
+    setup_infra_core_services
+    return 0
+  fi
+
+  setup_infra_core_services
+
+  if is_persistent_migration_mode; then
+    if is_scheduled_once_migration_mode && migration_scheduled_once_completed; then
+      :
+    else
+      printf '%s\n' dsp-job-migration
+    fi
+  fi
+
+  if ! is_object_storage_stack_enabled; then
+    return 0
+  fi
+
+  printf '%s\n' dsp-object-storage
+  if is_recurring_geo_file_generation_mode || is_geo_wait_for_first_load_mode; then
+    printf '%s\n' dsp-job-geo-file-generation
+  fi
+}
+
+# Hint after require_setup_infra_ready fails (copy-paste compose command).
+print_infra_recovery_hint() {
+  local profiles=""
+  local services="dsp-db dsp-geoserver-db dsp-geoserver-exhibition dsp-geoserver-download"
+
+  if is_demo_stack_mode || is_quickstart_configured; then
+    echo ""
+    echo "Infrastructure is not ready. ./start.sh only starts backend, frontend and gateway."
+    echo "First time: run ./setup.sh (Demonstration or Real adopter)."
+    echo "After 'docker compose down' (without -v), start demonstration infrastructure again:"
+    echo ""
+    echo "  docker compose --env-file .env up -d --build ${services}"
+    echo ""
+    echo "Then run ./start.sh again."
+    echo ""
+    return 0
+  fi
+
+  profiles="--profile migration"
+  if is_object_storage_stack_enabled; then
+    profiles="${profiles} --profile object-storage"
+  fi
+  if is_persistent_migration_mode; then
+    if ! { is_scheduled_once_migration_mode && migration_scheduled_once_completed; }; then
+      services="${services} dsp-job-migration"
+    fi
+  fi
+  if is_object_storage_stack_enabled; then
+    services="${services} dsp-object-storage"
+    if is_recurring_geo_file_generation_mode || is_geo_wait_for_first_load_mode; then
+      services="${services} dsp-job-geo-file-generation"
+    fi
+  fi
+
+  echo ""
+  echo "Infrastructure is not ready. ./start.sh only starts backend, frontend and gateway."
+  echo "First time: run ./setup.sh"
+  echo "After 'docker compose down' (without -v), start infrastructure again (no migration, no layer republish):"
+  echo ""
+  echo "  docker compose --env-file .env ${profiles} up -d --build ${services}"
+  echo ""
+  echo "Then run ./start.sh again."
+  echo ""
+}
+
+# Exits if any setup_infra_required_services container is not running.
+require_setup_infra_ready() {
+  local svc
+  local missing=false
+  local attempt=0
+  local max_attempts=30
+
+  if is_demo_stack_mode || is_quickstart_configured; then
+    info "Demonstration stack: checking DBs and GeoServers only."
+  fi
+
+  while [ "$attempt" -lt "$max_attempts" ]; do
+    missing=false
+    load_stack_service_statuses true
+    while IFS= read -r svc; do
+      [ -z "$svc" ] && continue
+      if ! is_setup_infra_service_ready "$svc"; then
+        missing=true
+        break
+      fi
+    done < <(setup_infra_required_services)
+
+    if [ "$missing" = false ]; then
+      ok "Infrastructure is running"
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    if [ "$attempt" -lt "$max_attempts" ]; then
+      sleep 2
+    fi
+  done
+
+  load_stack_service_statuses true
+  while IFS= read -r svc; do
+    [ -z "$svc" ] && continue
+    if ! is_setup_infra_service_ready "$svc"; then
+      error "Infrastructure service not ready: ${svc} ($(stack_service_status "$svc"))"
+    fi
+  done < <(setup_infra_required_services)
+
+  print_infra_recovery_hint
+  exit 1
+}
+
+# Starts backend, frontend and gateway without compose depends_on (DBs/GeoServers).
+start_application_stack() {
+  info "Building and starting application containers..."
+  # --no-deps: do not start DBs/GeoServers via depends_on; infra was validated earlier.
+  docker compose --env-file .env up -d --build --no-deps dsp-backend dsp-frontend
+  ok "Backend and frontend are running"
+  start_gateway
 }
 
 # Runtime stack status helpers (container state / Docker healthcheck — no HTTP probes).
@@ -2252,10 +2526,7 @@ is_quickstart_configured() {
   local download_active="$ROOT_DIR/config/downloads/downloadThemesConfig.json"
   local about_example="$ROOT_DIR/config/about/about-config.quickstart.json.example"
   local about_active="$ROOT_DIR/config/about/about-config.json"
-  local adopter_config="$ROOT_DIR/config/adopter/adopter-config.yaml"
-
-  [ ! -f "$adopter_config" ] &&
-    [ -f "$install_example" ] &&
+  [ -f "$install_example" ] &&
     [ -f "$install_active" ] &&
     [ -f "$map_example" ] &&
     [ -f "$map_active" ] &&
@@ -2353,11 +2624,11 @@ start_geoserver_exhibition() {
   fi
 
   if [ "$mode" = "up" ]; then
-    # start.sh: rebuild so map JSON in the image is current; does not republish layers.
+    # mode=up: start without republishing layers (populate runs in setup).
     info "Building and starting GeoServer Exhibition..."
     docker compose --env-file .env up -d --build dsp-geoserver-exhibition
   else
-    # populate | start — setup builds the image; populate also publishes layers.
+    # mode=populate|start: setup builds the image; populate also publishes layers.
     info "Building and starting GeoServer Exhibition..."
     docker compose --env-file .env up -d --build dsp-geoserver-exhibition
   fi
@@ -2387,9 +2658,11 @@ start_geoserver_download() {
   local mode="${1:-up}"
 
   if [ "$mode" = "up" ]; then
+    # mode=up: start without republishing layers (populate runs in setup).
     info "Building and starting GeoServer Download..."
     docker compose --env-file .env up -d --build dsp-geoserver-download
   else
+    # mode=populate|start: setup builds the image; populate also publishes layers.
     info "Building and starting GeoServer Download..."
     docker compose --env-file .env up -d --build dsp-geoserver-download
   fi
@@ -2420,8 +2693,9 @@ start_gateway() {
   base_url="$(dsp_public_base_url)"
   local i
 
+  # --no-deps: do not restart GeoServers/backend only because of gateway depends_on.
   info "Building and starting gateway (nginx)..."
-  docker compose --env-file .env up -d --build --force-recreate dsp-gateway
+  docker compose --env-file .env up -d --build --no-deps dsp-gateway
   ok "Gateway container started"
 
   info "Waiting for the gateway at ${base_url}/gateway/health ..."
@@ -2512,6 +2786,9 @@ print_stack_usage_hints() {
   echo "Migrate / (re)populate data:"
   echo "  ./setup.sh"
   print_migration_resync_hints
+  echo ""
+  echo "Application only (backend, frontend, gateway): ./start.sh"
+  echo "  Requires infrastructure running; if you ran compose down, use the compose command printed when ./start.sh fails."
   echo ""
   echo "Rebuild frontend only: docker compose up -d --build dsp-frontend"
   echo "Logs:       docker compose logs -f"
