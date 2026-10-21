@@ -102,11 +102,19 @@ jobs:
       # Build every image with the compose orchestrator (resolves additional_contexts
       # and the network:host GeoServer builds). Includes the 'migration' profile so
       # the job image is built too. Produces local dsp-*:local images.
+      #
+      # NOTE: do NOT use COMPOSE_BAKE=true here. With bake, the network.host
+      # entitlement required by the GeoServer builds must be granted per-invocation
+      # (bake --allow=network.host), which `docker compose build` cannot pass through.
+      # Newer Buildx releases on the runner reject it and the build fails with
+      # 'additional privileges requested: pass "--allow=network.host"'. The classic
+      # compose build path honors the daemon-level entitlement set via the
+      # buildkitd-flags above, so we keep bake disabled.
       - name: Build all DSP images (compose)
         working-directory: core
         run: |
           cp .env.example .env
-          COMPOSE_BAKE=true docker compose --profile migration build
+          docker compose --profile migration build
 
       # Retag the locally-built images to GHCR and push (only on push events).
       - name: Tag and push images to GHCR
