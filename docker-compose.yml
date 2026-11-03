@@ -55,8 +55,6 @@ services:
     build:
       context: ${DSP_JOB_MIGRATION_PATH:-../job-data-migration}
       dockerfile: Dockerfile
-      additional_contexts:
-        dsp_config: ./config
       network: host
     container_name: dsp-job-migration
     profiles:
@@ -65,12 +63,10 @@ services:
     entrypoint: ["/migration-entrypoint.sh"]
     environment:
       SPRING_CONFIG_LOCATION: file:/config/application.yaml
-      SPRING_MAIN_WEB_APPLICATION_TYPE: none
       DSP_MIGRATION_EXECUTION_MODE: ${DSP_MIGRATION_EXECUTION_MODE:-once}
       DSP_MIGRATION_CRON: "${DSP_MIGRATION_CRON:-0 22 * * *}"
       DSP_MIGRATION_SCHEDULED_AT: "${DSP_MIGRATION_SCHEDULED_AT:-}"
       DSP_MIGRATION_TZ: ${DSP_MIGRATION_TZ}
-      TZ: ${DSP_MIGRATION_TZ}
       DSP_SOURCE_JDBC_URL: ${DSP_SOURCE_JDBC_URL}
       DSP_SOURCE_DB_USER: ${DSP_SOURCE_DB_USER}
       DSP_SOURCE_DB_PASSWORD: ${DSP_SOURCE_DB_PASSWORD}
@@ -85,7 +81,6 @@ services:
       DSP_GEOSERVER_DB_PASSWORD: ${DSP_GEOSERVER_DB_PASSWORD:-dsp_geo}
       MAP_LAYERS_CONFIG: /config/mapLayersConfig.json
       DSP_FIRST_DATA_LOAD_MARKER: ${DSP_FIRST_DATA_LOAD_MARKER:-/dsp-batch-markers/first_data_load.ready}
-      DSP_GEO_FILE_GENERATION_RECURRING: ${DSP_GEO_FILE_GENERATION_RECURRING:-true}
     volumes:
       - dsp_batch_markers:/dsp-batch-markers
     extra_hosts:
@@ -110,6 +105,7 @@ services:
     restart: unless-stopped
     ports:
       - "${DSP_OBJECT_STORAGE_HOST_PORT:-8333}:8333"
+      - "${DSP_OBJECT_STORAGE_FILER_HOST_PORT:-8888}:8888"
     expose:
       - "8333"
     environment:
@@ -138,20 +134,33 @@ services:
     build:
       context: ${DSP_JOB_GEO_FILE_GENERATION_PATH:-../job-geo-file-generation}
       dockerfile: Dockerfile
-      additional_contexts:
-        dsp_config: ./config
       network: host
     container_name: dsp-job-geo-file-generation
     profiles:
       - object-storage
     restart: ${DSP_GEO_FILE_GENERATION_RESTART_POLICY:-unless-stopped}
     environment:
-      SPRING_CONFIG_LOCATION: file:/config/application.yaml
       SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      SPRING_DATASOURCE_BATCH_URL: jdbc:postgresql://dsp-db:5432/${DSP_DB_NAME:-dsp-db}?currentSchema=geo_file_generation
+      SPRING_DATASOURCE_BATCH_USERNAME: ${DSP_DB_USER:-dsp}
+      SPRING_DATASOURCE_BATCH_PASSWORD: ${DSP_DB_PASSWORD:-dsp}
+      SPRING_DATASOURCE_TARGET_URL: jdbc:postgresql://dsp-db:5432/${DSP_DB_NAME:-dsp-db}
+      SPRING_DATASOURCE_TARGET_USERNAME: ${DSP_DB_USER:-dsp}
+      SPRING_DATASOURCE_TARGET_PASSWORD: ${DSP_DB_PASSWORD:-dsp}
+      SPRING_DATASOURCE_GEO_TARGET_URL: jdbc:postgresql://dsp-geoserver-db:5432/${DSP_GEOSERVER_DB_NAME:-dsp-geoserver-db}
+      SPRING_DATASOURCE_GEO_TARGET_USERNAME: ${DSP_GEOSERVER_DB_USER:-dsp_geo}
+      SPRING_DATASOURCE_GEO_TARGET_PASSWORD: ${DSP_GEOSERVER_DB_PASSWORD:-dsp_geo}
+      DSP_DOWNLOAD_THEMES_FILE: file:/config/downloadThemesConfig.json
+      DSP_OBJECT_STORAGE_ENDPOINT: ${DSP_OBJECT_STORAGE_ENDPOINT:-}
+      DSP_OBJECT_STORAGE_REGION: ${DSP_OBJECT_STORAGE_REGION:-us-east-1}
+      DSP_OBJECT_STORAGE_BUCKET: ${DSP_OBJECT_STORAGE_BUCKET:-dsp-geo-files}
+      DSP_OBJECT_STORAGE_ACCESS_KEY: ${DSP_OBJECT_STORAGE_ACCESS_KEY:-}
+      DSP_OBJECT_STORAGE_SECRET_KEY: ${DSP_OBJECT_STORAGE_SECRET_KEY:-}
+      DSP_OBJECT_STORAGE_PATH_STYLE_ACCESS: ${DSP_OBJECT_STORAGE_PATH_STYLE_ACCESS:-true}
       DSP_GEO_FILE_GENERATION_EXECUTION_MODE: ${DSP_GEO_FILE_GENERATION_EXECUTION_MODE:-continuous}
       DSP_GEO_FILE_GENERATION_CRON: "${DSP_GEO_FILE_GENERATION_CRON:-0 2 * * *}"
-      DSP_GEO_FILE_GENERATION_TZ: ${DSP_GEO_FILE_GENERATION_TZ:-${DSP_MIGRATION_TZ}}
-      TZ: ${DSP_GEO_FILE_GENERATION_TZ:-${DSP_MIGRATION_TZ}}
+      DSP_GEO_FILE_GENERATION_TZ: ${DSP_GEO_FILE_GENERATION_TZ:-UTC}
+      TZ: ${DSP_GEO_FILE_GENERATION_TZ:-UTC}
       DSP_FIRST_DATA_LOAD_MARKER: ${DSP_FIRST_DATA_LOAD_MARKER:-/dsp-batch-markers/first_data_load.ready}
       DSP_GEO_FILE_GENERATION_RECURRING: ${DSP_GEO_FILE_GENERATION_RECURRING:-true}
     volumes:
@@ -171,8 +180,6 @@ services:
     build:
       context: ${DSP_BACKEND_PATH:-../backend}
       dockerfile: Dockerfile
-      additional_contexts:
-        dsp_config: ./config
       args:
         DSP_BACKEND_PROJECT_NAME: dsp-backend
         DSP_BACKEND_VERSION: 0.0.1-SNAPSHOT

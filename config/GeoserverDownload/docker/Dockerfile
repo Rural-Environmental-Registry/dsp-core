@@ -21,11 +21,16 @@ RUN mkdir -p /opt/additional_libs /opt/geoserver_data /var/geoserver/datadir /co
                     /usr/local/tomcat/work && \
     chmod -R 775 /var/geoserver/datadir /opt/additional_libs
 
+# WFS outputFormat=gpkg. Build-time only: leaving INSTALL_EXTENSIONS in the image
+# would make startup.sh download the plugin again on every container start.
+RUN INSTALL_EXTENSIONS=true STABLE_EXTENSIONS=geopkg-output /opt/install-extensions.sh \
+    && chown -R 999:999 /opt/additional_libs
+
 # Build context: rer-dsp-core/config
 COPY GeoserverDownload/docker/populate_geoserver.sh /opt/populate_geoserver.sh
 COPY GeoserverDownload/docker/docker-entrypoint.sh /docker-entrypoint.sh
-COPY docker/select-runtime-config.sh /tmp/select-runtime-config.sh
-COPY map/ /tmp/map/
+COPY GeoserverDownload/docker/select-runtime-config.sh /tmp/select-runtime-config.sh
+COPY GeoserverDownload/map/ /tmp/map/
 RUN chmod +x /opt/populate_geoserver.sh /docker-entrypoint.sh /tmp/select-runtime-config.sh && \
     /tmp/select-runtime-config.sh pick /tmp/map mapLayersConfig.json /config/mapLayersConfig.json && \
     rm -rf /tmp/map /tmp/select-runtime-config.sh && \

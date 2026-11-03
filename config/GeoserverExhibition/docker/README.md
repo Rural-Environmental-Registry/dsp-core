@@ -9,7 +9,7 @@ Downloads (CSV/WFS export) use a separate GeoServer — see `config/GeoserverDow
 - Base: `docker.osgeo.org/geoserver:3.0.0`
 - Build context: `rer-dsp-core/config` (`dockerfile: GeoserverExhibition/docker/Dockerfile`)
 - Compose service: `dsp-geoserver-exhibition`
-- `mapLayersConfig.json` is copied into the image at `/config/mapLayersConfig.json`
+- `mapLayersConfig.json` lives in `config/GeoserverExhibition/map/` (updated by dsp-core `./config.sh`) and is baked into the image at `/config/mapLayersConfig.json` via `select-runtime-config.sh`
 
 ## Defaults
 
@@ -35,7 +35,7 @@ the wrong path.
 | `dsp.territory_level_3` | `dsp:territory-level-3` | `territory-level-3` |
 | `dsp.area_of_interest` | `dsp:area-of-interest` | `area-of-interest` |
 
-`populate_geoserver.sh` does **not** create tables. It only publishes FeatureTypes for tables created by `config/db/dsp-db` init SQL (data from the migration job).
+`populate_geoserver.sh` does **not** create tables. It only publishes FeatureTypes for tables that already exist on **dsp-geoserver-db** (minimal schema from DB image init SQL; rows from the migration job or quickstart seed).
 
 `mapLayersConfig.json` must keep these four `layers` ids — `./start.sh` validates them.
 
