@@ -3190,6 +3190,7 @@ def apply_config(root: Path, active: Path, *, quiet: bool = False) -> None:
     migration["execution-jobs"]["kpi-job"] = True
     layer_jobs_enabled = bool(extra_layers)
     migration["execution-jobs"]["layer-jobs"] = layer_jobs_enabled
+    migration["execution-jobs"]["reconciliation-jobs"] = False
     output = paths["migration_app"] / "application.yaml"
     paths["migration_app"].mkdir(parents=True, exist_ok=True)
     output.write_text(dump_yaml(migration), encoding="utf-8")
