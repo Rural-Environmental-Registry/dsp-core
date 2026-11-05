@@ -33,6 +33,8 @@ KEEP_MIGRATION_SERVICE="${KEEP_MIGRATION_SERVICE:-false}"
 
 if [ "$SETUP_MODE" = "demo" ]; then
   info "Mode: demonstration (built-in seed)"
+elif [ "$SETUP_MODE" = "rer" ]; then
+  info "Mode: RER — first migration runs during setup, then data re-sync and download file generation every 2 minutes (${MIGRATION_CRON})"
 elif [ "$WILL_MIGRATE" = "true" ]; then
   info "Mode: real adopter — first migration runs during setup (${MIGRATION_EXECUTION_MODE:-once})"
 else
