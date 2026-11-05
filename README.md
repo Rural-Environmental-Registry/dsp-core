@@ -1,4 +1,4 @@
-# rer-dsp-core
+# dsp-core
 
 > [!IMPORTANT]
 > This repository is one module of the **DSP (Data Sharing Platform)**, part of the RER ecosystem. Full project documentation lives in **[dsp-docs](https://github.com/Rural-Environmental-Registry/dsp-docs)**. The information below covers this module only, and only briefly.
