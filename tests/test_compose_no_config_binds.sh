@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE="$ROOT/docker-compose.yml"
 CONFIG_SH="$ROOT/config.sh"
 JOB_DOCKERFILE="$ROOT/../dsp-job-data-migration/Dockerfile"
+GEO_DOCKERFILE="$ROOT/../dsp-job-geo-file-generation/Dockerfile"
 PASS=0
 FAIL=0
 
@@ -70,6 +71,10 @@ fi
 # CFG-04
 assert_present "$JOB_DOCKERFILE" "/config/application.yaml" "job copies application.yaml to /config"
 assert_present "$JOB_DOCKERFILE" 'ENTRYPOINT ["/migration-entrypoint.sh"]' "job ENTRYPOINT is /migration-entrypoint.sh"
+assert_absent "$GEO_DOCKERFILE" "COPY --from=dsp_config" "geo job does not pull dsp_config"
+assert_present "$GEO_DOCKERFILE" "config/downloads/" "geo job copies downloads from its own repo"
+assert_present "$GEO_DOCKERFILE" 'ENTRYPOINT ["/geo-file-entrypoint.sh"]' "geo job ENTRYPOINT is /geo-file-entrypoint.sh"
+assert_present "$GEO_DOCKERFILE" "/config/downloadThemesConfig.json" "geo job bakes downloadThemesConfig.json"
 
 # CFG-05
 for db in dsp-db dsp-geoserver-db; do
